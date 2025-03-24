@@ -1,0 +1,26 @@
+# dotenv file
+.env
+
+# python virtual environment
+.venv/
+
+# ruff cache
+.ruff_cache/
+
+# pytest cache
+.pytest_cache/
+
+# pycache
+__pycache__/
+
+# VS Code settings
+.vscode/
+
+# OS generated files 
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.d

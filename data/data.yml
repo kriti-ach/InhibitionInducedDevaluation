@@ -1,0 +1,108 @@
+columns: 
+  - raw_reward_magnitude:
+    Description: The raw reward magnitude of each stimulus shown in phase 1
+    Type: float
+    Example: "0.0"
+  - stim_reward:
+    Description: The reward magnitude of each color-shape stimulus pairing 
+    (1 and 5 = low; 2 and 6 = mid low; 3 and 7 = mid high; 4 and 8 = high)
+    Type: float
+    Example: "1.0"
+  - stepwise_reward_magnitude:
+    Description: The stepwise reward magnitude of each color-shape stimulus pairing ranging from 0-4. For example, stimuli with a 
+    stim_reward of 1 or 5 will have a stepwise_reward_magnitude of 1. All stimuli can have some trials with a 
+    stepwise_reward_magnitude of 0. 
+    Type: float
+    Example: "0.0"
+  - paired_with_stopping:
+    Description: Whether the stimulus is paired with stopping in phase 2.
+    Type: float
+    Example: "0.0"
+  - quadrant:
+    Description: The quadrant that the stimulus is shown in. In phase 1, 1 = top L; 2 = top R; 3 = bottom R; 4 = bottom L. 
+    In phase 2, 5 = L; 6 = R.
+    Type: float
+    Example: "1.0"
+  - response:
+    Description: The subject's response. In phase 1, 1 = top L; 2 = top R; 3 = bottom R; 4 = bottom L. In phase 2, 5 = L; 6 = R.
+    Type: float
+    Example: "1.0"
+  - reaction_time:
+    Description: The reaction time in milliseconds.
+    Type: float
+    Example: "369.7879840619860"
+  - block:
+    Description: The current block in a given phase of the experiment. Phase 1 has 3 blocks, Phase 2 has 8 blocks, 
+    and Phase 3 has 4 blocks.
+    Type: float
+    Example: "1.0"
+  - num_trial_presentations:
+    Description: The number of times a given trial is replayed. In phase 1 and 3, trials are replayed if the subject 
+    chooses the incorrect response/misses the trial.
+    Type: float
+    Example: "1.0"
+  - which_part:
+    Description: The phase/part of the experiment.
+    Type: String
+    Example: ""part_ 1""
+  - stop_signal_trial_type:
+    Description: Whether the trial is a go or stop trial
+    Type: String
+    Example: ""go""
+  - left_SSD:
+    Description: In Phase 2, the current SSD for stimuli presented on the left side of the screen, in milliseconds. 
+    It starts at 250ms.
+    Type: float
+    Example: "250.0"
+  - right_SSD:
+    Description: In Phase 2, the current SSD for stimuli presented on the right side of the screen, in milliseconds. 
+    It starts at 250ms.
+    Type: float
+    Example: "250.0"
+  - accuracy:
+    Description: Accuracy in Phase 2. (1 = Correct; 2 = Error; 3 = Failed stop; 4 = Successful stop; 5 = Miss)
+    Type: float
+    Example: ""go""
+  - chosen_bidding_amount:
+    Description: In Phase 3, the bidding option chosen by the participant
+    Type: float
+    Example: "34.0"
+  - chosen_bidding_level:
+    Description: In Phase 3, the level of the bidding amount chosen by the participant. There are 6 different bidding options.
+    The bidding level ranges from 1-6 where 1 is the smallest bidding option and 6 is the largest bidding option.
+    Type: float
+    Example: "1.0"
+  - possible_bid_1:
+    Description: The first bidding option provided.
+    Type: float
+    Example: "34.0"
+  - possible_bid_2:
+    Description: The second bidding option provided.
+    Type: float
+    Example: "34.0"
+  - possible_bid_3:
+    Description: The third bidding option provided.
+    Type: float
+    Example: "34.0"
+  - possible_bid_4:
+    Description: The fourth bidding option provided.
+    Type: float
+    Example: "34.0"
+  - possible_bid_5:
+    Description: The fifth bidding option provided.
+    Type: float
+    Example: "34.0"
+  - possible_bid_6:
+    Description: The sixth bidding option provided.
+    Type: float
+    Example: "34.0"
+  - color_text:
+    Description: The color of the stimulus.
+    Type: String
+    Example: ""green""
+  - shape_text:
+    Description: The shape of the stimulus.
+    Type: String
+    Example: ""square""
+  
+  
