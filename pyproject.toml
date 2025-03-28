@@ -8,9 +8,10 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "numpy>=2.2.3",
-    "pandas>=2.2.3",
-    "matplotlib>=3.10.0",
+    "numpy>=1.26.0,<2.0.0",
+    "pandas>=2.1.0,<2.2.0",
+    "matplotlib>=3.8.0",
+    "scipy>=1.11.0",
 ]
 
 [dependency-groups]
@@ -45,3 +46,10 @@ testpaths=['tests']
 exclude = ['.venv']
 venvPath = '.'
 venv = '.venv'
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["inhibition_induced_devaluation"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/inhibition_induced_devaluation"]
