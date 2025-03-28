@@ -867,3 +867,27 @@ def perform_equivalence_testing(df: pd.DataFrame, location: str, subject_type: s
         'TOST_upper_p': p_upper,
         'Equivalent': p_lower < 0.05 and p_upper < 0.05
     }])
+
+
+def convert_to_jasp_format(df: pd.DataFrame, location: str, subject_type: str) -> pd.DataFrame:
+    """
+    Convert DataFrame to JASP format and save.
+    
+    Args:
+        df: DataFrame to convert
+        location: Collection location
+        subject_type: Type of subjects ('all', 'included', or 'phase1')
+    
+    Returns:
+        Converted DataFrame in JASP format
+    """
+    # Aggregate: Compute mean BIDDING_LEVEL for each SUBJECT and STOP_CONDITION
+    aggregated_df = df.groupby(['SUBJECT', 'STOP_CONDITION'])['BIDDING_LEVEL'].mean().unstack()
+    
+    # Rename columns
+    aggregated_df.columns = ['No_Stop', 'Stop']
+    
+    # Reset index to make SUBJECT a column
+    aggregated_df.reset_index(inplace=True)
+    
+    return aggregated_df

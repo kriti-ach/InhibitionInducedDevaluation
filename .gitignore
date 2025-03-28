@@ -24,3 +24,6 @@ __pycache__/
 .Trashes
 ehthumbs.db
 Thumbs.d
+
+# JASP files
+output/csvs_for_jasp/

@@ -7,6 +7,7 @@ from inhibition_induced_devaluation.utils.utils import (
     perform_rm_anova,
     combine_location_data,
     perform_equivalence_testing,
+    convert_to_jasp_format,
 )
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,7 +21,11 @@ def main():
     figure_dir = data_dir.parent / 'figures'
     output_dir = data_dir.parent / 'output'
     table_dir = data_dir.parent / 'tables'
-    table_dir.mkdir(parents=True, exist_ok=True)
+    jasp_dir = output_dir / 'csvs_for_jasp'
+    
+    # Create necessary directories
+    for directory in [table_dir, jasp_dir]:
+        directory.mkdir(parents=True, exist_ok=True)
     
     # Get behavioral exclusions first
     behavioral_exclusions = get_behavioral_exclusions(data_dir)
@@ -60,8 +65,20 @@ def main():
     # Store all equivalence results
     all_equiv_results = []
     
-    # Process each dataset and create summary tables
+    # Process each dataset and create outputs
     for location in behavioral_exclusions.keys():
+        
+        # Convert to JASP format and save
+        jasp_all = convert_to_jasp_format(all_data[location], location, 'all')
+        jasp_included = convert_to_jasp_format(included_data[location], location, 'included')
+        
+        jasp_all.to_csv(jasp_dir / f'{location}_all_jasp.csv', index=False)
+        jasp_included.to_csv(jasp_dir / f'{location}_included_jasp.csv', index=False)
+        
+        if location != 'DR2':
+            jasp_phase1 = convert_to_jasp_format(phase1_data[location], location, 'phase1')
+            jasp_phase1.to_csv(jasp_dir / f'{location}_phase1_jasp.csv', index=False)
+        
         # Create figures and perform analyses
         create_devaluation_figure(all_data[location], location, 'all', figure_dir)
         perform_rm_anova(all_data[location], location, 'all', output_dir)
