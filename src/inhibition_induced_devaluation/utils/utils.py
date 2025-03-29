@@ -330,19 +330,17 @@ def process_stop_signal_data(
     ].copy()
 
     # Calculate mean RTs
-    meanRT_stop_fail = stop_failure_trials['reaction_time'].mean()
-    meanRT_no_stop_trials_stop_shapes = no_stop_signal_trials_stop_shapes[
+    mean_rt_stop_fail = stop_failure_trials['reaction_time'].mean()
+    mean_rt_no_stop_trials_stop_shapes = no_stop_signal_trials_stop_shapes[
         'reaction_time'
     ].mean()
 
     # Process SSRT calculation
-    trials_with_SS = df_p2.loc[df_p2['stop_signal_trial_type'] == 'stop']
-    trials_with_SS_left = trials_with_SS.loc[trials_with_SS['quadrant'] == 5]
-    trials_with_SS_right = trials_with_SS.loc[trials_with_SS['quadrant'] == 6]
+    trials_with_ss = df_p2.loc[df_p2['stop_signal_trial_type'] == 'stop']
 
     # Calculate probability of responding
-    successful_stops = trials_with_SS.groupby('response').count().iloc[0].accuracy
-    pRespond_given_SS = (len(trials_with_SS) - successful_stops) / len(trials_with_SS)
+    successful_stops = trials_with_ss.groupby('response').count().iloc[0].accuracy
+    pRespond_given_SS = (len(trials_with_ss) - successful_stops) / len(trials_with_ss)
     # Process no-stop trials
     rank = round(pRespond_given_SS * len(no_stop_signal_trials_stop_shapes))
     rank_left_trials = no_stop_signal_trials_stop_shapes.loc[
@@ -362,8 +360,8 @@ def process_stop_signal_data(
     # Calculate SSRT components
     if len(no_stop_signal_trials_stop_shapes['reaction_time_replaced']) <= rank:
         return (
-            meanRT_stop_fail,
-            meanRT_no_stop_trials_stop_shapes,
+            mean_rt_stop_fail,
+            mean_rt_no_stop_trials_stop_shapes,
             float('nan'),
             float('nan'),
         )
@@ -374,19 +372,19 @@ def process_stop_signal_data(
         .reaction_time_replaced
     )
 
-    avg_SSD = (
+    avg_ssd = (
         rank_left_trials['left_SSD'].mean() + rank_right_trials['right_SSD'].mean()
     ) / 2
-    SSRT = Nth_RT - avg_SSD
+    ssrt = Nth_RT - avg_ssd
 
-    return meanRT_stop_fail, meanRT_no_stop_trials_stop_shapes, SSRT, avg_SSD
+    return mean_rt_stop_fail, mean_rt_no_stop_trials_stop_shapes, ssrt, avg_ssd
 
 
 def check_exclusion_criteria(
     meanRT_stop_fail: float,
     meanRT_no_stop_trials_stop_shapes: float,
-    SSRT: float,
-    min_SSRT_cutoff: float = 100,
+    ssrt: float,
+    min_ssrt_cutoff: float = 100,
 ) -> Tuple[List[int], str]:
     """Check if a subject meets exclusion criteria."""
     subject_vector = []
@@ -397,7 +395,7 @@ def check_exclusion_criteria(
         subject_vector.append(1)
 
     # Check SSRT criterion
-    if np.isnan(SSRT) or SSRT < min_SSRT_cutoff:
+    if np.isnan(ssrt) or ssrt < min_ssrt_cutoff:
         subject_vector.append(0)
     else:
         subject_vector.append(1)
@@ -471,12 +469,12 @@ def process_csv_file(file_path: Path, dataset_collection_place: str) -> Dict:
             }
 
         # Process behavioral data
-        meanRT_stop_fail, meanRT_no_stop_trials_stop_shapes, SSRT, avg_SSD = (
+        mean_rt_stop_fail, mean_rt_no_stop_trials_stop_shapes, ssrt, avg_SSD = (
             process_stop_signal_data(subject_id, df)
         )
         # Check exclusion criteria
         subject_vector, reason = check_exclusion_criteria(
-            meanRT_stop_fail, meanRT_no_stop_trials_stop_shapes, SSRT
+            mean_rt_stop_fail, mean_rt_no_stop_trials_stop_shapes, ssrt
         )
 
         if subject_vector != [1, 1]:  # If subject should be excluded
@@ -485,9 +483,9 @@ def process_csv_file(file_path: Path, dataset_collection_place: str) -> Dict:
                 'reason': 'Behavior',
                 'detailed_reason': reason,
                 'metrics': {
-                    'meanRT_stop_fail': meanRT_stop_fail,
-                    'meanRT_no_stop_trials_stop_shapes': meanRT_no_stop_trials_stop_shapes,
-                    'SSRT': SSRT,
+                    'meanRT_stop_fail': mean_rt_stop_fail,
+                    'meanRT_no_stop_trials_stop_shapes': mean_rt_no_stop_trials_stop_shapes,
+                    'SSRT': ssrt,
                     'avg_SSD': avg_SSD,
                 },
             }
