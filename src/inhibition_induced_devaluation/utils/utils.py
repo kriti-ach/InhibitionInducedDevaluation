@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.stats.anova import AnovaRM
-from statsmodels.stats.power import tt_solve_power, TTestPower
 from scipy import stats
 
 # Define explicit knowledge subjects for each location
@@ -316,80 +315,138 @@ def load_csv_files(subdirectory: str) -> Dict[str, pd.DataFrame]:
     return csv_files
 
 
-def process_stop_signal_data(
-    subject_id, df: pd.DataFrame
-) -> Tuple[float, float, float, float]:
-    """Process stop signal data to calculate key metrics."""
-    # Filter for part 2 only
-    df_p2 = df[df['which_part'] == 'part_2'].copy()
+def fix_response_accuracy(df_p2: pd.DataFrame, location: str, subject_id: str) -> pd.DataFrame:
+    """Fix response and accuracy for specific subjects."""
+    if (location == 'Stanford' and subject_id == 'S902') or (location == 'UNC' and subject_id == 'S4193'):
+        condition = ((df_p2['quadrant'] == 5) & (df_p2['response'] == 1))
+        df_p2.loc[condition, 'response'] = 5
+        condition2 = ((df_p2['quadrant'] == 5) & (df_p2['response'] == 5) & (df_p2['accuracy'] == 2))
+        df_p2.loc[condition2, 'accuracy'] = 1
+    elif location == 'Tel Aviv' and subject_id == 'S221':
+        condition = ((df_p2['quadrant'] == 5) & (df_p2['response'] == 1))
+        df_p2.loc[condition, 'response'] = 5
+        condition2 = ((df_p2['quadrant'] == 5) & (df_p2['response'] == 5) & (df_p2['accuracy'] == 2))
+        df_p2.loc[condition2, 'accuracy'] = 1
+        condition3 = ((df_p2['quadrant'] == 6) & (df_p2['response'] == 2))
+        df_p2.loc[condition3, 'response'] = 6
+        condition4 = ((df_p2['quadrant'] == 6) & (df_p2['response'] == 6) & (df_p2['accuracy'] == 2))
+        df_p2.loc[condition4, 'accuracy'] = 1
+    return df_p2
 
-    # Get trial types
+
+def get_trial_types(df_p2: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Extract different trial types."""
     stop_failure_trials = df_p2.loc[df_p2['accuracy'] == 3]
+    no_stop_signal_trials_go_shapes = df_p2.loc[df_p2['paired_with_stopping'] == 0].copy()
     no_stop_signal_trials_stop_shapes = df_p2.loc[
-        (df_p2['paired_with_stopping'] == 1) & (df_p2['stop_signal_trial_type'] == 'go')
+        (df_p2['paired_with_stopping'] == 1) & 
+        (df_p2['stop_signal_trial_type'] == 'go')
     ].copy()
+    no_stop_signal_trials_all_shapes = df_p2.loc[df_p2['stop_signal_trial_type'] == 'go'].copy()
+    
+    return (stop_failure_trials, no_stop_signal_trials_go_shapes, 
+            no_stop_signal_trials_stop_shapes, no_stop_signal_trials_all_shapes)
 
-    # Calculate mean RTs
-    mean_rt_stop_fail = stop_failure_trials['reaction_time'].mean()
-    mean_rt_no_stop_trials_stop_shapes = no_stop_signal_trials_stop_shapes[
-        'reaction_time'
-    ].mean()
 
-    # Process SSRT calculation
-    trials_with_ss = df_p2.loc[df_p2['stop_signal_trial_type'] == 'stop']
+def calculate_mean_rts(stop_failure_trials: pd.DataFrame,
+                      no_stop_signal_trials_all_shapes: pd.DataFrame,
+                      no_stop_signal_trials_go_shapes: pd.DataFrame,
+                      no_stop_signal_trials_stop_shapes: pd.DataFrame) -> Tuple[float, float, float, float]:
+    """Calculate mean reaction times for different trial types."""
+    return (
+        no_stop_signal_trials_all_shapes['reaction_time'].mean(),  # p2_go_RT
+        stop_failure_trials['reaction_time'].mean(),               # p2_stopfail_RT
+        no_stop_signal_trials_go_shapes['reaction_time'].mean(),   # p2_goRT_go_shapes
+        no_stop_signal_trials_stop_shapes['reaction_time'].mean()  # p2_goRT_stop_shapes
+    )
 
-    # Calculate probability of responding
-    successful_stops = trials_with_ss.groupby('response').count().iloc[0].accuracy
-    pRespond_given_SS = (len(trials_with_ss) - successful_stops) / len(trials_with_ss)
-    # Process no-stop trials
-    rank = round(pRespond_given_SS * len(no_stop_signal_trials_stop_shapes))
+
+def calculate_ssrt_components(df_p2: pd.DataFrame, no_stop_signal_trials_stop_shapes: pd.DataFrame) -> Tuple[float, float]:
+    """Calculate SSRT and probability of stopping."""
+    trials_with_SS = df_p2.loc[df_p2['stop_signal_trial_type'] == 'stop']
+    p_respond = (len(trials_with_SS) - trials_with_SS.groupby('response').count().iloc[0].accuracy) / len(trials_with_SS)
+    
+    # Calculate SSRT
+    rank = round(p_respond * len(no_stop_signal_trials_stop_shapes))
+    no_stop_signal_trials_stop_shapes['reaction_time_replaced'] = np.where(
+        no_stop_signal_trials_stop_shapes['reaction_time'] == 0, 
+        1000, 
+        no_stop_signal_trials_stop_shapes['reaction_time']
+    )
+    
     rank_left_trials = no_stop_signal_trials_stop_shapes.loc[
         no_stop_signal_trials_stop_shapes['quadrant'] == 5
     ].copy()
     rank_right_trials = no_stop_signal_trials_stop_shapes.loc[
         no_stop_signal_trials_stop_shapes['quadrant'] == 6
     ].copy()
+    
+    try:
+        nth_rt = (no_stop_signal_trials_stop_shapes
+                 .sort_values(by=['reaction_time_replaced'])
+                 .iloc[int(rank)]
+                 .reaction_time_replaced)
+        avg_ssd = (rank_left_trials['left_SSD'].mean() + rank_right_trials['right_SSD'].mean()) / 2
+        ssrt = nth_rt - avg_ssd
+    except:
+        ssrt = float('nan')
+    
+    return ssrt, p_respond
 
-    # We are replacing missed no-stop trials with the maximum response time, 1 second
-    no_stop_signal_trials_stop_shapes['reaction_time_replaced'] = np.where(
-        no_stop_signal_trials_stop_shapes['reaction_time'] == 0,
-        MAX_RT,
-        no_stop_signal_trials_stop_shapes['reaction_time'],
+
+def process_stop_signal_data(subject_id: str, df: pd.DataFrame, location: str) -> Dict[str, float]:
+    """
+    Process stop signal data to calculate key metrics.
+    
+    Returns dictionary with keys:
+    - p2_go_RT
+    - p2_stopfail_RT
+    - p2_goRT_go_shapes
+    - p2_goRT_stop_shapes
+    - p2_SSRT
+    - p2_prob_stop
+    """
+    # Filter for part 2 only
+    df_p2 = df[df['which_part'] == 'part_2'].copy()
+    
+    # Fix response and accuracy for specific subjects
+    df_p2 = fix_response_accuracy(df_p2, location, subject_id)
+    
+    # Get trial types
+    (stop_failure_trials, no_stop_signal_trials_go_shapes,
+     no_stop_signal_trials_stop_shapes, no_stop_signal_trials_all_shapes) = get_trial_types(df_p2)
+    
+    # Calculate mean RTs
+    go_rt, stopfail_rt, go_shapes_rt, stop_shapes_rt = calculate_mean_rts(
+        stop_failure_trials, 
+        no_stop_signal_trials_all_shapes,
+        no_stop_signal_trials_go_shapes,
+        no_stop_signal_trials_stop_shapes
     )
-
-    # Calculate SSRT components
-    if len(no_stop_signal_trials_stop_shapes['reaction_time_replaced']) <= rank:
-        return (
-            mean_rt_stop_fail,
-            mean_rt_no_stop_trials_stop_shapes,
-            float('nan'),
-            float('nan'),
-        )
-
-    Nth_RT = (
-        no_stop_signal_trials_stop_shapes.sort_values(by=['reaction_time_replaced'])
-        .iloc[int(rank)]
-        .reaction_time_replaced
-    )
-
-    avg_ssd = (
-        rank_left_trials['left_SSD'].mean() + rank_right_trials['right_SSD'].mean()
-    ) / 2
-    ssrt = Nth_RT - avg_ssd
-
-    return mean_rt_stop_fail, mean_rt_no_stop_trials_stop_shapes, ssrt, avg_ssd
+    
+    # Calculate SSRT and p(respond|signal)
+    ssrt, p_respond = calculate_ssrt_components(df_p2, no_stop_signal_trials_stop_shapes)
+    
+    return {
+        'p2_go_RT': go_rt,
+        'p2_stopfail_RT': stopfail_rt,
+        'p2_goRT_go_shapes': go_shapes_rt,
+        'p2_goRT_stop_shapes': stop_shapes_rt,
+        'p2_SSRT': ssrt,
+        'p2_prob_stop': p_respond
+    }
 
 
 def check_exclusion_criteria(
-    meanRT_stop_fail: float,
-    meanRT_no_stop_trials_stop_shapes: float,
+    mean_rt_stop_fail: float,
+    mean_rt_no_stop_trials_stop_shapes: float,
     ssrt: float,
     min_ssrt_cutoff: float = 100,
 ) -> Tuple[List[int], str]:
     """Check if a subject meets exclusion criteria."""
     subject_vector = []
     # Check stop-failure RT criterion
-    if meanRT_stop_fail >= meanRT_no_stop_trials_stop_shapes:
+    if mean_rt_stop_fail >= mean_rt_no_stop_trials_stop_shapes:
         subject_vector.append(0)
     else:
         subject_vector.append(1)
@@ -469,12 +526,10 @@ def process_csv_file(file_path: Path, dataset_collection_place: str) -> Dict:
             }
 
         # Process behavioral data
-        mean_rt_stop_fail, mean_rt_no_stop_trials_stop_shapes, ssrt, avg_SSD = (
-            process_stop_signal_data(subject_id, df)
-        )
+        metrics = process_stop_signal_data(subject_id, df, dataset_collection_place)
         # Check exclusion criteria
         subject_vector, reason = check_exclusion_criteria(
-            mean_rt_stop_fail, mean_rt_no_stop_trials_stop_shapes, ssrt
+            metrics['p2_stopfail_RT'], metrics['p2_goRT_stop_shapes'], metrics['p2_SSRT']
         )
 
         if subject_vector != [1, 1]:  # If subject should be excluded
@@ -482,12 +537,7 @@ def process_csv_file(file_path: Path, dataset_collection_place: str) -> Dict:
                 'subject_id': subject_id,
                 'reason': 'Behavior',
                 'detailed_reason': reason,
-                'metrics': {
-                    'meanRT_stop_fail': mean_rt_stop_fail,
-                    'meanRT_no_stop_trials_stop_shapes': mean_rt_no_stop_trials_stop_shapes,
-                    'SSRT': ssrt,
-                    'avg_SSD': avg_SSD,
-                },
+                'metrics': metrics,
             }
         return {}
 
@@ -622,13 +672,6 @@ def get_iqr_exclusions(
                     'subject_id': subject_id,
                     'reason': 'IID Effect',
                     'detailed_reason': 'IID effect outside 1.5*IQR range',
-                    'metrics': {
-                        'iid_effect': iid_effect,
-                        'stop_bid': stop_bid,
-                        'go_bid': go_bid,
-                        'upper_cutoff': upper_cutoff,
-                        'lower_cutoff': lower_cutoff,
-                    },
                 }
                 location_exclusions.append(exclusion)
 
@@ -889,3 +932,60 @@ def convert_to_jasp_format(df: pd.DataFrame, location: str, subject_type: str) -
     aggregated_df.reset_index(inplace=True)
     
     return aggregated_df
+
+
+def process_subject_files(data_dir: Path, location: str, excluded_subjects: List[str]) -> Tuple[List[Dict], List[Dict]]:
+    """Process all subject files in a location and separate into all and included metrics."""
+    location_dir = data_dir / location
+    all_metrics = []
+    included_metrics = []
+    
+    for file_path in location_dir.glob('*.csv'):
+        subject_id = file_path.stem
+        df = pd.read_csv(file_path)
+        subject_metrics = process_stop_signal_data(subject_id, df, location)
+        
+        all_metrics.append(subject_metrics)
+        if subject_id not in excluded_subjects:
+            included_metrics.append(subject_metrics)
+    
+    return all_metrics, included_metrics
+
+
+def calculate_metric_means(metrics_list: List[Dict], metric_key: str) -> float:
+    """Calculate mean for a specific metric across subjects."""
+    return np.nanmean([m[metric_key] for m in metrics_list])
+
+
+def format_metric_value(value: float, is_probability: bool) -> str:
+    """Format metric value according to its type."""
+    return f'{value:.2f}' if is_probability else f'{int(value)}'
+
+
+def create_stopping_results_table(data_dir: Path, location: str, excluded_subjects: List[str]) -> pd.DataFrame:
+    """Create summary table of stopping results comparing all vs included subjects."""
+    # Process all files
+    all_metrics, included_metrics = process_subject_files(data_dir, location, excluded_subjects)
+    
+    metric_display = {
+        'p2_go_RT': 'Go RT (ms)',
+        'p2_goRT_stop_shapes': 'Go RT Stop shapes (ms)',
+        'p2_goRT_go_shapes': 'Go RT Non-Stop Shapes (ms)',
+        'p2_stopfail_RT': 'Stop-Failure RT (ms)',
+        'p2_prob_stop': 'p(resp|signal)',
+        'p2_SSRT': 'SSRT (ms)'
+    }
+    
+    summary_data = {location: [], 'All': [], 'Subset': []}
+    
+    for metric_key, display_name in metric_display.items():
+        summary_data[location].append(display_name)
+        
+        all_mean = calculate_metric_means(all_metrics, metric_key)
+        included_mean = calculate_metric_means(included_metrics, metric_key)
+        
+        is_probability = metric_key == 'p2_prob_stop'
+        summary_data['All'].append(format_metric_value(all_mean, is_probability))
+        summary_data['Subset'].append(format_metric_value(included_mean, is_probability))
+    
+    return pd.DataFrame(summary_data)

@@ -1,0 +1,7 @@
+Tel Aviv,All,Subset
+Go RT (ms),616,619
+Go RT Stop shapes (ms),653,632
+Go RT Non-Stop Shapes (ms),607,616
+Stop-Failure RT (ms),543,506
+p(resp|signal),0.45,0.47
+SSRT (ms),197,219

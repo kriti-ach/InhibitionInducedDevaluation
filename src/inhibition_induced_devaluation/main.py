@@ -8,6 +8,7 @@ from inhibition_induced_devaluation.utils.utils import (
     combine_location_data,
     perform_equivalence_testing,
     convert_to_jasp_format,
+    create_stopping_results_table,
 )
 import matplotlib.pyplot as plt
 import numpy as np
@@ -61,6 +62,23 @@ def main():
     all_data = get_processed_data(data_dir)
     included_data = get_processed_data(data_dir, all_exclusions, subject_filter='included_only')
     phase1_data = get_processed_data(data_dir, subject_filter='phase1_explicit')
+    
+    # Create stopping results tables for each location
+    for location in behavioral_exclusions.keys():
+        # Get list of all excluded subjects for this location
+        excluded_subjects = [
+            subj['subject_id'] for subj in behavioral_exclusions[location]
+        ] + [
+            subj['subject_id'] for subj in iqr_exclusions.get(location, [])
+        ]
+        
+        # Create and save stopping results table
+        stopping_table = create_stopping_results_table(
+            data_dir,
+            location,
+            excluded_subjects
+        )
+        stopping_table.to_csv(table_dir / f'{location}_stopping_results.csv', index=False)
     
     # Store all equivalence results
     all_equiv_results = []
