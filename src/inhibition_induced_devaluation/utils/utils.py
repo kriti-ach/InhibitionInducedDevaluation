@@ -1,226 +1,273 @@
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from statsmodels.stats.anova import AnovaRM
+import seaborn as sns
 from scipy import stats
+from statsmodels.stats.anova import AnovaRM
 
 # Define explicit knowledge subjects for each location
 EXPLICIT_KNOWLEDGE_SUBJECTS = {
-    'DR2': {
-        'S91',
-        'S97',
-        'S100',
-        'S102',
-        'S106',
-        'S108',
-        'S112',
-        'S32',
-        'S49',
-        'S87',
-        'S90',
-        'S92',
-        'S95',
-        'S96',
-        'S98',
-        'S103',
-        'S110',
+    "DR1": {"S62", "S63", "S65", "S72", "S11", "S52", "S67"},
+    "DR2": {
+        "S91",
+        "S97",
+        "S100",
+        "S102",
+        "S106",
+        "S108",
+        "S112",
+        "S32",
+        "S49",
+        "S87",
+        "S90",
+        "S92",
+        "S95",
+        "S96",
+        "S98",
+        "S103",
+        "S110",
     },
-    'Stanford': {
-        'S768',
-        'S770',
-        'S772',
-        'S774',
-        'S776',
-        'S778',
-        'S779',
-        'S780',
-        'S782',
-        'S783',
-        'S786',
-        'S791',
-        'S792',
-        'S795',
-        'S796',
-        'S798',
-        'S801',
-        'S807',
-        'S808',
-        'S811',
-        'S814',
-        'S815',
-        'S818',
-        'S819',
-        'S822',
-        'S825',
-        'S826',
-        'S827',
-        'S833',
-        'S836',
-        'S846',
-        'S849',
-        'S854',
-        'S858',
-        'S868',
-        'S875',
-        'S876',
-        'S882',
-        'S887',
-        'S889',
-        'S891',
-        'S895',
-        'S896',
-        'S901',
-        'S906',
-        'S908',
-        'S912',
-        'S834',
+    "Stanford": {
+        "S768",
+        "S770",
+        "S772",
+        "S774",
+        "S776",
+        "S778",
+        "S779",
+        "S780",
+        "S782",
+        "S783",
+        "S786",
+        "S791",
+        "S792",
+        "S795",
+        "S796",
+        "S798",
+        "S801",
+        "S807",
+        "S808",
+        "S811",
+        "S814",
+        "S815",
+        "S818",
+        "S819",
+        "S822",
+        "S825",
+        "S826",
+        "S827",
+        "S833",
+        "S836",
+        "S846",
+        "S849",
+        "S854",
+        "S858",
+        "S868",
+        "S875",
+        "S876",
+        "S882",
+        "S887",
+        "S889",
+        "S891",
+        "S895",
+        "S896",
+        "S901",
+        "S906",
+        "S908",
+        "S912",
+        "S834",
     },
-    'Tel Aviv': {
-        'S142',
-        'S148',
-        'S150',
-        'S152',
-        'S154',
-        'S156',
-        'S158',
-        'S162',
-        'S163',
-        'S165',
-        'S166',
-        'S167',
-        'S168',
-        'S169',
-        'S173',
-        'S176',
-        'S180',
-        'S188',
-        'S192',
-        'S193',
-        'S200',
-        'S203',
-        'S205',
-        'S208',
-        'S215',
-        'S216',
-        'S223',
-        'S224',
-        'S225',
-        'S230',
-        'S231',
-        'S235',
-        'S242',
-        'S247',
-        'S248',
-        'S250',
-        'S256',
-        'S262',
-        'S271',
-        'S277',
-        'S279',
-        'S280',
-        'S282',
-        'S284',
-        'S286',
-        'S292',
-        'S296',
-        'S298',
-        'S300',
-        'S301',
-        'S302',
-        'S304',
-        'S309',
-        'S311',
-        'S313',
+    "Tel Aviv": {
+        "S142",
+        "S148",
+        "S150",
+        "S152",
+        "S154",
+        "S156",
+        "S158",
+        "S162",
+        "S163",
+        "S165",
+        "S166",
+        "S167",
+        "S168",
+        "S169",
+        "S173",
+        "S176",
+        "S180",
+        "S188",
+        "S192",
+        "S193",
+        "S200",
+        "S203",
+        "S205",
+        "S208",
+        "S215",
+        "S216",
+        "S223",
+        "S224",
+        "S225",
+        "S230",
+        "S231",
+        "S235",
+        "S242",
+        "S247",
+        "S248",
+        "S250",
+        "S256",
+        "S262",
+        "S271",
+        "S277",
+        "S279",
+        "S280",
+        "S282",
+        "S284",
+        "S286",
+        "S292",
+        "S296",
+        "S298",
+        "S300",
+        "S301",
+        "S302",
+        "S304",
+        "S309",
+        "S311",
+        "S313",
     },
-    'UNC': {
-        'S4001',
-        'S4002',
-        'S4004',
-        'S4005',
-        'S4006',
-        'S4008',
-        'S4012',
-        'S4014',
-        'S4019',
-        'S4022',
-        'S4023',
-        'S4027',
-        'S4028',
-        'S4029',
-        'S4040',
-        'S4043',
-        'S4048',
-        'S4057',
-        'S4058',
-        'S4063',
-        'S4065',
-        'S4069',
-        'S4070',
-        'S4073',
-        'S4074',
-        'S4075',
-        'S4081',
-        'S4085',
-        'S4086',
-        'S4088',
-        'S4095',
-        'S4099',
-        'S4103',
-        'S4108',
-        'S4109',
-        'S4115',
-        'S4116',
-        'S4122',
-        'S4129',
-        'S4131',
-        'S4133',
-        'S4135',
-        'S4138',
-        'S4142',
-        'S4146',
-        'S4149',
-        'S4156',
-        'S4161',
-        'S4163',
-        'S4165',
-        'S4167',
-        'S4168',
-        'S4173',
-        'S4174',
-        'S4175',
-        'S4181',
-        'S4183',
-        'S4185',
-        'S4192',
-        'S4204',
-        'S4211',
-        'S4218',
-        'S4225',
+    "UNC": {
+        "S4001",
+        "S4002",
+        "S4004",
+        "S4005",
+        "S4006",
+        "S4008",
+        "S4012",
+        "S4014",
+        "S4019",
+        "S4022",
+        "S4023",
+        "S4027",
+        "S4028",
+        "S4029",
+        "S4040",
+        "S4043",
+        "S4048",
+        "S4057",
+        "S4058",
+        "S4063",
+        "S4065",
+        "S4069",
+        "S4070",
+        "S4073",
+        "S4074",
+        "S4075",
+        "S4081",
+        "S4085",
+        "S4086",
+        "S4088",
+        "S4095",
+        "S4099",
+        "S4103",
+        "S4108",
+        "S4109",
+        "S4115",
+        "S4116",
+        "S4122",
+        "S4129",
+        "S4131",
+        "S4133",
+        "S4135",
+        "S4138",
+        "S4142",
+        "S4146",
+        "S4149",
+        "S4156",
+        "S4161",
+        "S4163",
+        "S4165",
+        "S4167",
+        "S4168",
+        "S4173",
+        "S4174",
+        "S4175",
+        "S4181",
+        "S4183",
+        "S4185",
+        "S4192",
+        "S4204",
+        "S4211",
+        "S4218",
+        "S4225",
     },
 }
 MAX_RT = 1000  # In milliseconds, the maximum reaction time
 
 PHASE1_EXPLICIT_KNOWLEDGE = {
-    'Stanford': [
-        'S766', 'S790', 'S791', 'S838', 'S841', 'S873',
-        'S902', 'S903', 'S904', 'S907', 'S914'
+    "Stanford": [
+        "S766",
+        "S790",
+        "S791",
+        "S838",
+        "S841",
+        "S873",
+        "S902",
+        "S903",
+        "S904",
+        "S907",
+        "S914",
     ],
-    'UNC': [
-        'S4024', 'S4051', 'S4062', 'S4064', 'S4067', 'S4068',
-        'S4077', 'S4079', 'S4090', 'S4096', 'S4123', 'S4124',
-        'S4136', 'S4140', 'S4160', 'S4186', 'S4191', 'S4195',
-        'S4196', 'S4210', 'S4213', 'S4215', 'S4217', 'S4219',
-        'S4221', 'S4222'
+    "UNC": [
+        "S4024",
+        "S4051",
+        "S4062",
+        "S4064",
+        "S4067",
+        "S4068",
+        "S4077",
+        "S4079",
+        "S4090",
+        "S4096",
+        "S4123",
+        "S4124",
+        "S4136",
+        "S4140",
+        "S4160",
+        "S4186",
+        "S4191",
+        "S4195",
+        "S4196",
+        "S4210",
+        "S4213",
+        "S4215",
+        "S4217",
+        "S4219",
+        "S4221",
+        "S4222",
     ],
-    'Tel Aviv': [
-        'S145', 'S157', 'S170', 'S185', 'S187', 'S198',
-        'S219', 'S221', 'S236', 'S247', 'S260', 'S261',
-        'S274', 'S291', 'S303', 'S305', 'S308'
-    ]
+    "Tel Aviv": [
+        "S145",
+        "S157",
+        "S170",
+        "S185",
+        "S187",
+        "S198",
+        "S219",
+        "S221",
+        "S236",
+        "S247",
+        "S260",
+        "S261",
+        "S274",
+        "S291",
+        "S303",
+        "S305",
+        "S308",
+    ],
 }
+
 
 def get_project_root() -> Path:
     """Return the project root directory as a Path object."""
@@ -229,7 +276,7 @@ def get_project_root() -> Path:
 
 def get_data_dir() -> Path:
     """Return the data directory as a Path object."""
-    return get_project_root() / 'data'
+    return get_project_root() / "data"
 
 
 def get_data_locations() -> List[str]:
@@ -242,7 +289,7 @@ def get_data_locations() -> List[str]:
     data_dir = get_data_dir()
     # Get only directories and filter out hidden directories (starting with .)
     return [
-        d.name for d in data_dir.iterdir() if d.is_dir() and not d.name.startswith('.')
+        d.name for d in data_dir.iterdir() if d.is_dir() and not d.name.startswith(".")
     ]
 
 
@@ -262,14 +309,14 @@ def load_location_data(location: str) -> Dict[str, pd.DataFrame]:
         return {}
 
     csv_files = {}
-    for csv_path in data_dir.rglob('*.csv'):
+    for csv_path in data_dir.rglob("*.csv"):
         try:
             df = pd.read_csv(csv_path)
             # Use relative path from the location directory as key
             relative_path = csv_path.relative_to(data_dir)
             csv_files[str(relative_path)] = df
         except Exception as e:
-            print(f'Error loading {csv_path}: {str(e)}')
+            print(f"Error loading {csv_path}: {str(e)}")
 
     return csv_files
 
@@ -303,101 +350,140 @@ def load_csv_files(subdirectory: str) -> Dict[str, pd.DataFrame]:
         data_dir = data_dir / subdirectory
 
     csv_files = {}
-    for csv_path in data_dir.rglob('*.csv'):
+    for csv_path in data_dir.rglob("*.csv"):
         try:
             df = pd.read_csv(csv_path)
             # Use relative path from data directory as key
             relative_path = csv_path.relative_to(get_data_dir())
             csv_files[str(relative_path)] = df
         except Exception as e:
-            print(f'Error loading {csv_path}: {str(e)}')
+            print(f"Error loading {csv_path}: {str(e)}")
 
     return csv_files
 
 
-def fix_response_accuracy(df_p2: pd.DataFrame, location: str, subject_id: str) -> pd.DataFrame:
+def fix_response_accuracy(
+    df_p2: pd.DataFrame, location: str, subject_id: str
+) -> pd.DataFrame:
     """Fix response and accuracy for specific subjects."""
-    if (location == 'Stanford' and subject_id == 'S902') or (location == 'UNC' and subject_id == 'S4193'):
-        condition = ((df_p2['quadrant'] == 5) & (df_p2['response'] == 1))
-        df_p2.loc[condition, 'response'] = 5
-        condition2 = ((df_p2['quadrant'] == 5) & (df_p2['response'] == 5) & (df_p2['accuracy'] == 2))
-        df_p2.loc[condition2, 'accuracy'] = 1
-    elif location == 'Tel Aviv' and subject_id == 'S221':
-        condition = ((df_p2['quadrant'] == 5) & (df_p2['response'] == 1))
-        df_p2.loc[condition, 'response'] = 5
-        condition2 = ((df_p2['quadrant'] == 5) & (df_p2['response'] == 5) & (df_p2['accuracy'] == 2))
-        df_p2.loc[condition2, 'accuracy'] = 1
-        condition3 = ((df_p2['quadrant'] == 6) & (df_p2['response'] == 2))
-        df_p2.loc[condition3, 'response'] = 6
-        condition4 = ((df_p2['quadrant'] == 6) & (df_p2['response'] == 6) & (df_p2['accuracy'] == 2))
-        df_p2.loc[condition4, 'accuracy'] = 1
+    if (location == "Stanford" and subject_id == "S902") or (
+        location == "UNC" and subject_id == "S4193"
+    ):
+        condition = (df_p2["quadrant"] == 5) & (df_p2["response"] == 1)
+        df_p2.loc[condition, "response"] = 5
+        condition2 = (
+            (df_p2["quadrant"] == 5)
+            & (df_p2["response"] == 5)
+            & (df_p2["accuracy"] == 2)
+        )
+        df_p2.loc[condition2, "accuracy"] = 1
+    elif location == "Tel Aviv" and subject_id == "S221":
+        condition = (df_p2["quadrant"] == 5) & (df_p2["response"] == 1)
+        df_p2.loc[condition, "response"] = 5
+        condition2 = (
+            (df_p2["quadrant"] == 5)
+            & (df_p2["response"] == 5)
+            & (df_p2["accuracy"] == 2)
+        )
+        df_p2.loc[condition2, "accuracy"] = 1
+        condition3 = (df_p2["quadrant"] == 6) & (df_p2["response"] == 2)
+        df_p2.loc[condition3, "response"] = 6
+        condition4 = (
+            (df_p2["quadrant"] == 6)
+            & (df_p2["response"] == 6)
+            & (df_p2["accuracy"] == 2)
+        )
+        df_p2.loc[condition4, "accuracy"] = 1
     return df_p2
 
 
-def get_trial_types(df_p2: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def get_trial_types(
+    df_p2: pd.DataFrame,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Extract different trial types."""
-    stop_failure_trials = df_p2.loc[df_p2['accuracy'] == 3]
-    no_stop_signal_trials_go_shapes = df_p2.loc[df_p2['paired_with_stopping'] == 0].copy()
-    no_stop_signal_trials_stop_shapes = df_p2.loc[
-        (df_p2['paired_with_stopping'] == 1) & 
-        (df_p2['stop_signal_trial_type'] == 'go')
+    stop_failure_trials = df_p2.loc[df_p2["accuracy"] == 3]
+    no_stop_signal_trials_go_shapes = df_p2.loc[
+        df_p2["paired_with_stopping"] == 0
     ].copy()
-    no_stop_signal_trials_all_shapes = df_p2.loc[df_p2['stop_signal_trial_type'] == 'go'].copy()
-    
-    return (stop_failure_trials, no_stop_signal_trials_go_shapes, 
-            no_stop_signal_trials_stop_shapes, no_stop_signal_trials_all_shapes)
+    no_stop_signal_trials_stop_shapes = df_p2.loc[
+        (df_p2["paired_with_stopping"] == 1) & (df_p2["stop_signal_trial_type"] == "go")
+    ].copy()
+    no_stop_signal_trials_all_shapes = df_p2.loc[
+        df_p2["stop_signal_trial_type"] == "go"
+    ].copy()
+
+    return (
+        stop_failure_trials,
+        no_stop_signal_trials_go_shapes,
+        no_stop_signal_trials_stop_shapes,
+        no_stop_signal_trials_all_shapes,
+    )
 
 
-def calculate_mean_rts(stop_failure_trials: pd.DataFrame,
-                      no_stop_signal_trials_all_shapes: pd.DataFrame,
-                      no_stop_signal_trials_go_shapes: pd.DataFrame,
-                      no_stop_signal_trials_stop_shapes: pd.DataFrame) -> Tuple[float, float, float, float]:
+def calculate_mean_rts(
+    stop_failure_trials: pd.DataFrame,
+    no_stop_signal_trials_all_shapes: pd.DataFrame,
+    no_stop_signal_trials_go_shapes: pd.DataFrame,
+    no_stop_signal_trials_stop_shapes: pd.DataFrame,
+) -> Tuple[float, float, float, float]:
     """Calculate mean reaction times for different trial types."""
     return (
-        no_stop_signal_trials_all_shapes['reaction_time'].mean(),  # p2_go_RT
-        stop_failure_trials['reaction_time'].mean(),               # p2_stopfail_RT
-        no_stop_signal_trials_go_shapes['reaction_time'].mean(),   # p2_goRT_go_shapes
-        no_stop_signal_trials_stop_shapes['reaction_time'].mean()  # p2_goRT_stop_shapes
+        no_stop_signal_trials_all_shapes["reaction_time"].mean(),  # p2_go_RT
+        stop_failure_trials["reaction_time"].mean(),  # p2_stopfail_RT
+        no_stop_signal_trials_go_shapes["reaction_time"].mean(),  # p2_goRT_go_shapes
+        no_stop_signal_trials_stop_shapes[
+            "reaction_time"
+        ].mean(),  # p2_goRT_stop_shapes
     )
 
 
-def calculate_ssrt_components(df_p2: pd.DataFrame, no_stop_signal_trials_stop_shapes: pd.DataFrame) -> Tuple[float, float]:
+def calculate_ssrt_components(
+    df_p2: pd.DataFrame, no_stop_signal_trials_stop_shapes: pd.DataFrame
+) -> Tuple[float, float]:
     """Calculate SSRT and probability of stopping."""
-    trials_with_SS = df_p2.loc[df_p2['stop_signal_trial_type'] == 'stop']
-    p_respond = (len(trials_with_SS) - trials_with_SS.groupby('response').count().iloc[0].accuracy) / len(trials_with_SS)
-    
+    trials_with_SS = df_p2.loc[df_p2["stop_signal_trial_type"] == "stop"]
+    p_respond = (
+        len(trials_with_SS)
+        - trials_with_SS.groupby("response").count().iloc[0].accuracy
+    ) / len(trials_with_SS)
+
     # Calculate SSRT
     rank = round(p_respond * len(no_stop_signal_trials_stop_shapes))
-    no_stop_signal_trials_stop_shapes['reaction_time_replaced'] = np.where(
-        no_stop_signal_trials_stop_shapes['reaction_time'] == 0, 
-        1000, 
-        no_stop_signal_trials_stop_shapes['reaction_time']
+    no_stop_signal_trials_stop_shapes["reaction_time_replaced"] = np.where(
+        no_stop_signal_trials_stop_shapes["reaction_time"] == 0,
+        1000,
+        no_stop_signal_trials_stop_shapes["reaction_time"],
     )
-    
+
     rank_left_trials = no_stop_signal_trials_stop_shapes.loc[
-        no_stop_signal_trials_stop_shapes['quadrant'] == 5
+        no_stop_signal_trials_stop_shapes["quadrant"] == 5
     ].copy()
     rank_right_trials = no_stop_signal_trials_stop_shapes.loc[
-        no_stop_signal_trials_stop_shapes['quadrant'] == 6
+        no_stop_signal_trials_stop_shapes["quadrant"] == 6
     ].copy()
-    
+
     try:
-        nth_rt = (no_stop_signal_trials_stop_shapes
-                 .sort_values(by=['reaction_time_replaced'])
-                 .iloc[int(rank)]
-                 .reaction_time_replaced)
-        avg_ssd = (rank_left_trials['left_SSD'].mean() + rank_right_trials['right_SSD'].mean()) / 2
+        nth_rt = (
+            no_stop_signal_trials_stop_shapes.sort_values(by=["reaction_time_replaced"])
+            .iloc[int(rank)]
+            .reaction_time_replaced
+        )
+        avg_ssd = (
+            rank_left_trials["left_SSD"].mean() + rank_right_trials["right_SSD"].mean()
+        ) / 2
         ssrt = nth_rt - avg_ssd
     except:
-        ssrt = float('nan')
-    
+        ssrt = float("nan")
+
     return ssrt, p_respond
 
 
-def process_stop_signal_data(subject_id: str, df: pd.DataFrame, location: str) -> Dict[str, float]:
+def process_stop_signal_data(
+    subject_id: str, df: pd.DataFrame, location: str
+) -> Dict[str, float]:
     """
     Process stop signal data to calculate key metrics.
-    
+
     Returns dictionary with keys:
     - p2_go_RT
     - p2_stopfail_RT
@@ -407,33 +493,39 @@ def process_stop_signal_data(subject_id: str, df: pd.DataFrame, location: str) -
     - p2_prob_stop
     """
     # Filter for part 2 only
-    df_p2 = df[df['which_part'] == 'part_2'].copy()
-    
+    df_p2 = df[df["which_part"] == "part_2"].copy()
+
     # Fix response and accuracy for specific subjects
     df_p2 = fix_response_accuracy(df_p2, location, subject_id)
-    
+
     # Get trial types
-    (stop_failure_trials, no_stop_signal_trials_go_shapes,
-     no_stop_signal_trials_stop_shapes, no_stop_signal_trials_all_shapes) = get_trial_types(df_p2)
-    
+    (
+        stop_failure_trials,
+        no_stop_signal_trials_go_shapes,
+        no_stop_signal_trials_stop_shapes,
+        no_stop_signal_trials_all_shapes,
+    ) = get_trial_types(df_p2)
+
     # Calculate mean RTs
     go_rt, stopfail_rt, go_shapes_rt, stop_shapes_rt = calculate_mean_rts(
-        stop_failure_trials, 
+        stop_failure_trials,
         no_stop_signal_trials_all_shapes,
         no_stop_signal_trials_go_shapes,
-        no_stop_signal_trials_stop_shapes
+        no_stop_signal_trials_stop_shapes,
     )
-    
+
     # Calculate SSRT and p(respond|signal)
-    ssrt, p_respond = calculate_ssrt_components(df_p2, no_stop_signal_trials_stop_shapes)
-    
+    ssrt, p_respond = calculate_ssrt_components(
+        df_p2, no_stop_signal_trials_stop_shapes
+    )
+
     return {
-        'p2_go_RT': go_rt,
-        'p2_stopfail_RT': stopfail_rt,
-        'p2_goRT_go_shapes': go_shapes_rt,
-        'p2_goRT_stop_shapes': stop_shapes_rt,
-        'p2_SSRT': ssrt,
-        'p2_prob_stop': p_respond
+        "p2_go_RT": go_rt,
+        "p2_stopfail_RT": stopfail_rt,
+        "p2_goRT_go_shapes": go_shapes_rt,
+        "p2_goRT_stop_shapes": stop_shapes_rt,
+        "p2_SSRT": ssrt,
+        "p2_prob_stop": p_respond,
     }
 
 
@@ -459,13 +551,13 @@ def check_exclusion_criteria(
 
     # Determine exclusion reason
     if subject_vector == [1, 1]:
-        reason = 'include - subject passed all criteria'
+        reason = "include - subject passed all criteria"
     elif subject_vector == [1, 0]:
-        reason = 'exclude - SSRT is lower than the minimum SSRT'
+        reason = "exclude - SSRT is lower than the minimum SSRT"
     elif subject_vector == [0, 1]:
-        reason = 'exclude - stop fail RT is >= no-stop RT'
+        reason = "exclude - stop fail RT is >= no-stop RT"
     else:
-        reason = 'exclude - failed both criteria'
+        reason = "exclude - failed both criteria"
 
     return subject_vector, reason
 
@@ -478,37 +570,37 @@ def add_explicit_knowledge_exclusions(
         return behavioral_exclusions
 
     # Convert behavioral exclusions to a dict for easy lookup
-    excluded_subjects = {exc['subject_id']: exc for exc in behavioral_exclusions}
+    excluded_subjects = {exc["subject_id"]: exc for exc in behavioral_exclusions}
 
     for subject in EXPLICIT_KNOWLEDGE_SUBJECTS[location]:
         if subject in excluded_subjects:
             # Update reason if subject was already excluded for behavioral reasons
-            if excluded_subjects[subject]['reason'] == 'Behavior':
-                excluded_subjects[subject]['reason'] = 'Behavior and Explicit Knowledge'
-                excluded_subjects[subject]['detailed_reason'] = (
-                    f'Failed behavioral criteria ({excluded_subjects[subject]["detailed_reason"]}) and reported explicit knowledge'
+            if excluded_subjects[subject]["reason"] == "Behavior":
+                excluded_subjects[subject]["reason"] = "Behavior and Explicit Knowledge"
+                excluded_subjects[subject]["detailed_reason"] = (
+                    f"Failed behavioral criteria ({excluded_subjects[subject]['detailed_reason']}) and reported explicit knowledge"
                 )
         else:
             # Add new exclusion for explicit knowledge
             exclusion = {
-                'subject_id': subject,
-                'reason': 'Explicit Knowledge',
-                'detailed_reason': 'Explicit Knowledge',
+                "subject_id": subject,
+                "reason": "Explicit Knowledge",
+                "detailed_reason": "Explicit Knowledge",
             }
             behavioral_exclusions.append(exclusion)
 
     # Special case for Stanford S834
-    if location == 'Stanford' and 'S834' in EXPLICIT_KNOWLEDGE_SUBJECTS[location]:
-        if 'S834' not in excluded_subjects:
+    if location == "Stanford" and "S834" in EXPLICIT_KNOWLEDGE_SUBJECTS[location]:
+        if "S834" not in excluded_subjects:
             behavioral_exclusions.append(
                 {
-                    'subject_id': 'S834',
-                    'reason': 'Behavior',
-                    'detailed_reason': 'SSD reached 0 and stayed there',
+                    "subject_id": "S834",
+                    "reason": "Behavior",
+                    "detailed_reason": "SSD reached 0 and stayed there",
                 }
             )
 
-    return sorted(behavioral_exclusions, key=lambda x: x['subject_id'])
+    return sorted(behavioral_exclusions, key=lambda x: x["subject_id"])
 
 
 def process_csv_file(file_path: Path, dataset_collection_place: str) -> Dict:
@@ -518,31 +610,33 @@ def process_csv_file(file_path: Path, dataset_collection_place: str) -> Dict:
         subject_id = file_path.stem
 
         # Special case for Stanford S819
-        if dataset_collection_place.lower() == 'stanford' and 'S819' in file_path.name:
+        if dataset_collection_place.lower() == "stanford" and "S819" in file_path.name:
             return {
-                'subject_id': subject_id,
-                'reason': 'Behavior',
-                'detailed_reason': 'Did not stop',
+                "subject_id": subject_id,
+                "reason": "Behavior",
+                "detailed_reason": "Did not stop",
             }
 
         # Process behavioral data
         metrics = process_stop_signal_data(subject_id, df, dataset_collection_place)
         # Check exclusion criteria
         subject_vector, reason = check_exclusion_criteria(
-            metrics['p2_stopfail_RT'], metrics['p2_goRT_stop_shapes'], metrics['p2_SSRT']
+            metrics["p2_stopfail_RT"],
+            metrics["p2_goRT_stop_shapes"],
+            metrics["p2_SSRT"],
         )
 
         if subject_vector != [1, 1]:  # If subject should be excluded
             return {
-                'subject_id': subject_id,
-                'reason': 'Behavior',
-                'detailed_reason': reason,
-                'metrics': metrics,
+                "subject_id": subject_id,
+                "reason": "Behavior",
+                "detailed_reason": reason,
+                "metrics": metrics,
             }
         return {}
 
     except Exception as e:
-        print(f'Error processing {file_path}: {str(e)}')
+        print(f"Error processing {file_path}: {str(e)}")
         return {}
 
 
@@ -556,17 +650,17 @@ def get_behavioral_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
     exclusions = {}
 
     for location_dir in data_dir.iterdir():
-        if not location_dir.is_dir() or location_dir.name.startswith('.'):
+        if not location_dir.is_dir() or location_dir.name.startswith("."):
             continue
 
         location_exclusions = []
-        csv_files = sorted(list(location_dir.glob('*.csv')))
+        csv_files = sorted(list(location_dir.glob("*.csv")))
 
         if not csv_files:
-            print(f'No CSV files found in {location_dir}')
+            print(f"No CSV files found in {location_dir}")
             continue
 
-        print(f'Processing {len(csv_files)} files in {location_dir.name}')
+        print(f"Processing {len(csv_files)} files in {location_dir.name}")
 
         for csv_file in csv_files:
             exclusion_data = process_csv_file(csv_file, location_dir.name)
@@ -584,13 +678,13 @@ def get_behavioral_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
 
 def process_phase3_data(df: pd.DataFrame) -> Tuple[float, float, float]:
     """Process phase 3 data to calculate IID effects."""
-    df_p3 = df[df['which_part'] == 'part_3'].copy()
+    df_p3 = df[df["which_part"] == "part_3"].copy()
 
-    stop_shapes = df_p3[df_p3['paired_with_stopping'] == 1]
-    go_shapes = df_p3[df_p3['paired_with_stopping'] == 0]
+    stop_shapes = df_p3[df_p3["paired_with_stopping"] == 1]
+    go_shapes = df_p3[df_p3["paired_with_stopping"] == 0]
 
-    stop_bid = stop_shapes['chosen_bidding_level'].mean()
-    go_bid = go_shapes['chosen_bidding_level'].mean()
+    stop_bid = stop_shapes["chosen_bidding_level"].mean()
+    go_bid = go_shapes["chosen_bidding_level"].mean()
     iid_effect = go_bid - stop_bid  # Positive values indicate devaluation
 
     return iid_effect, stop_bid, go_bid
@@ -621,7 +715,7 @@ def get_iqr_exclusions(
     exclusions = {}
 
     for location_dir in data_dir.iterdir():
-        if not location_dir.is_dir() or location_dir.name.startswith('.'):
+        if not location_dir.is_dir() or location_dir.name.startswith("."):
             continue
 
         # Get list of already excluded subjects for this location
@@ -630,15 +724,11 @@ def get_iqr_exclusions(
         # Process each location's data
         iid_effects = []
         subject_data = {}
-        csv_files = sorted(list(location_dir.glob('*.csv')))
+        csv_files = sorted(list(location_dir.glob("*.csv")))
 
         if not csv_files:
-            print(f'No CSV files found in {location_dir}')
+            print(f"No CSV files found in {location_dir}")
             continue
-
-        print(
-            f'\nProcessing {len(csv_files)} files in {location_dir.name} for IQR exclusions'
-        )
 
         # First pass: collect IID effects only for non-excluded subjects
         for csv_file in csv_files:
@@ -654,11 +744,11 @@ def get_iqr_exclusions(
                     iid_effects.append(iid_effect)
                     subject_data[subject_id] = (iid_effect, stop_bid, go_bid)
             except Exception as e:
-                print(f'Error processing {csv_file}: {str(e)}')
+                print(f"Error processing {csv_file}: {str(e)}")
 
         if not iid_effects:
             print(
-                f'No valid IID effects found for non-excluded subjects in {location_dir.name}'
+                f"No valid IID effects found for non-excluded subjects in {location_dir.name}"
             )
             continue
 
@@ -669,9 +759,9 @@ def get_iqr_exclusions(
         for subject_id, (iid_effect, stop_bid, go_bid) in subject_data.items():
             if iid_effect > upper_cutoff or iid_effect < lower_cutoff:
                 exclusion = {
-                    'subject_id': subject_id,
-                    'reason': 'IID Effect',
-                    'detailed_reason': 'IID effect outside 1.5*IQR range',
+                    "subject_id": subject_id,
+                    "reason": "IID Effect",
+                    "detailed_reason": "IID effect outside 1.5*IQR range",
                 }
                 location_exclusions.append(exclusion)
 
@@ -681,84 +771,103 @@ def get_iqr_exclusions(
     return exclusions
 
 
-def process_subject_data(file_path: Path) -> pd.DataFrame:
+def process_subject_data(file_path: Path, location: str) -> pd.DataFrame:
     """Process individual subject data file."""
     df = pd.read_csv(file_path)
     subject_id = file_path.stem  # Gets filename without extension
-    
-    df['BIDDING_LEVEL'] = df['chosen_bidding_level']
-    value_level_mapping = {1: 'L', 2: 'LM', 3: 'HM', 4: 'H'}
-    df['VALUE_LEVEL'] = df['stepwise_reward_magnitude'].map(value_level_mapping)
-    df['SUBJECT'] = subject_id
-    
-    df_agg = df.groupby(['SUBJECT', 'VALUE_LEVEL', 'paired_with_stopping'])['BIDDING_LEVEL'].mean().reset_index()
-    df_agg['STOP_CONDITION'] = df_agg['paired_with_stopping'].map({0: 'No Stop', 1: 'Stop'})
-    
-    return df_agg[['SUBJECT', 'VALUE_LEVEL', 'STOP_CONDITION', 'BIDDING_LEVEL']]
+
+    df["BIDDING_LEVEL"] = df["chosen_bidding_level"]
+    value_level_mapping = {1: "L", 2: "LM", 3: "HM", 4: "H"}
+    if location == "DR1":
+        value_level_mapping = {0.5: "L", 1: "LM", 2: "HM", 4: "H"}
+    df["VALUE_LEVEL"] = df["stepwise_reward_magnitude"].map(value_level_mapping)
+    df["SUBJECT"] = subject_id
+
+    df_agg = (
+        df.groupby(["SUBJECT", "VALUE_LEVEL", "paired_with_stopping"])["BIDDING_LEVEL"]
+        .mean()
+        .reset_index()
+    )
+    df_agg["STOP_CONDITION"] = df_agg["paired_with_stopping"].map(
+        {0: "No Stop", 1: "Stop"}
+    )
+
+    return df_agg[["SUBJECT", "VALUE_LEVEL", "STOP_CONDITION", "BIDDING_LEVEL"]]
 
 
-def get_processed_data(data_dir: Path, 
-                      excluded_subjects: Dict[str, List[str]] = None,
-                      subject_filter: str = 'all') -> Dict[str, pd.DataFrame]:
+def get_processed_data(
+    data_dir: Path,
+    excluded_subjects: Dict[str, List[str]] = None,
+    subject_filter: str = "all",
+) -> Dict[str, pd.DataFrame]:
     """
     Process data for all locations with different filtering options.
-    
+
     Args:
         data_dir: Path to data directory
         excluded_subjects: Dictionary of excluded subjects by location
         subject_filter: One of 'all', 'included_only', or 'phase1_explicit'
-    
+
     Returns:
         Dictionary with location names as keys and processed DataFrames as values
     """
     if excluded_subjects is None:
         excluded_subjects = {}
-    
+
     processed_data = {}
-    
+
     for location_dir in data_dir.iterdir():
-        if not location_dir.is_dir() or location_dir.name.startswith('.'):
+        if not location_dir.is_dir() or location_dir.name.startswith("."):
             continue
-            
+
         location = location_dir.name
-        csv_files = sorted(list(location_dir.glob('*.csv')))
-        
+        csv_files = sorted(list(location_dir.glob("*.csv")))
+
         if not csv_files:
             print(f"No CSV files found in {location}")
             continue
-            
+
         # Determine which subjects to process based on filter
-        excluded = {subj['subject_id'] for subj in excluded_subjects[location]} if location in excluded_subjects else set()
+        excluded = (
+            {subj["subject_id"] for subj in excluded_subjects[location]}
+            if location in excluded_subjects
+            else set()
+        )
         phase1_explicit = set(PHASE1_EXPLICIT_KNOWLEDGE.get(location, []))
-        
+
         dfs = []
         for file_path in csv_files:
             subject_id = file_path.stem
-            
+
             # Apply filters
-            if subject_filter == 'included_only' and subject_id in excluded:
+            if subject_filter == "included_only" and subject_id in excluded:
                 continue
-            elif subject_filter == 'phase1_explicit' and subject_id not in phase1_explicit:
+            if (
+                subject_filter == "phase1_explicit"
+                and subject_id not in phase1_explicit
+            ):
                 continue
-                
+
             try:
-                df = process_subject_data(file_path)
+                df = process_subject_data(file_path, location)
                 dfs.append(df)
             except Exception as e:
                 print(f"Error processing {file_path}: {str(e)}")
-        
+
         if dfs:
             processed_data[location] = pd.concat(dfs, ignore_index=True)
         else:
             print(f"No valid data processed for {location}")
-    
+
     return processed_data
 
 
-def create_devaluation_figure(df: pd.DataFrame, location: str, subject_type: str, figure_dir: Path) -> None:
+def create_devaluation_figure(
+    df: pd.DataFrame, location: str, subject_type: str, figure_dir: Path
+) -> None:
     """
     Create devaluation figure from processed data.
-    
+
     Args:
         df: Processed DataFrame with bidding data
         location: Collection location
@@ -766,47 +875,55 @@ def create_devaluation_figure(df: pd.DataFrame, location: str, subject_type: str
         figure_dir: Path to figures directory
     """
     # Define the desired order for 'VALUE_LEVEL'
-    value_level_order = pd.CategoricalDtype(['L', 'LM', 'HM', 'H'], ordered=True)
-    
+    value_level_order = pd.CategoricalDtype(["L", "LM", "HM", "H"], ordered=True)
+
     # Convert 'VALUE_LEVEL' to categorical type with defined order
-    df['VALUE_LEVEL'] = df['VALUE_LEVEL'].astype(value_level_order)
-    
+    df["VALUE_LEVEL"] = df["VALUE_LEVEL"].astype(value_level_order)
+
     # Calculate statistics
-    group_stats = df.groupby(['VALUE_LEVEL', 'STOP_CONDITION'], observed=True)['BIDDING_LEVEL'].agg([
-        'mean', 'std', 'count'
-    ]).reset_index()
-    
+    group_stats = (
+        df.groupby(["VALUE_LEVEL", "STOP_CONDITION"], observed=True)["BIDDING_LEVEL"]
+        .agg(["mean", "std", "count"])
+        .reset_index()
+    )
+
     # Calculate SEM
-    group_stats['SEM'] = group_stats['std'] / np.sqrt(group_stats['count'])
-    
+    group_stats["SEM"] = group_stats["std"] / np.sqrt(group_stats["count"])
+
     # Pivot data
-    avg_pivot = group_stats.pivot(index='VALUE_LEVEL', columns='STOP_CONDITION', values='mean')
-    sem_pivot = group_stats.pivot(index='VALUE_LEVEL', columns='STOP_CONDITION', values='SEM')
-    
+    avg_pivot = group_stats.pivot(
+        index="VALUE_LEVEL", columns="STOP_CONDITION", values="mean"
+    )
+    sem_pivot = group_stats.pivot(
+        index="VALUE_LEVEL", columns="STOP_CONDITION", values="SEM"
+    )
+
     # Create figure
     plt.figure(figsize=(10, 6))
-    avg_pivot.plot(kind='bar', yerr=sem_pivot, capsize=4)
-    
-    plt.title(f'{location} - {subject_type} subjects')
-    plt.xlabel('Value Level')
-    plt.ylabel('Average Bidding Level')
+    avg_pivot.plot(kind="bar", yerr=sem_pivot, capsize=4)
+
+    plt.title(f"{location} - {subject_type} subjects")
+    plt.xlabel("Value Level")
+    plt.ylabel("Average Bidding Level")
     plt.xticks(rotation=0)
     plt.yticks(np.arange(1, 7, 1))
-    plt.legend(title='Stop Condition')
-    
+    plt.legend(title="Stop Condition")
+
     # Create directory if it doesn't exist
     location_dir = figure_dir / location
     location_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Save figure
-    plt.savefig(location_dir / f'{location}_{subject_type}_devaluation_figure.png')
+    plt.savefig(location_dir / f"{location}_{subject_type}_devaluation_figure.png")
     plt.close()
 
 
-def perform_rm_anova(df: pd.DataFrame, location: str, subject_type: str, output_dir: Path) -> None:
+def perform_rm_anova(
+    df: pd.DataFrame, location: str, subject_type: str, output_dir: Path
+) -> None:
     """
     Perform repeated measures ANOVA on the data and save results.
-    
+
     Args:
         df: Processed DataFrame with bidding data
         location: Collection location
@@ -814,25 +931,27 @@ def perform_rm_anova(df: pd.DataFrame, location: str, subject_type: str, output_
         output_dir: Path to output directory
     """
     # Ensure categorical variables
-    df['STOP_CONDITION'] = df['STOP_CONDITION'].astype('category')
-    df['VALUE_LEVEL'] = df['VALUE_LEVEL'].astype('category')
-    
+    df["STOP_CONDITION"] = df["STOP_CONDITION"].astype("category")
+    df["VALUE_LEVEL"] = df["VALUE_LEVEL"].astype("category")
+
     # Perform repeated measures ANOVA
     anova_results = AnovaRM(
         data=df,
-        depvar='BIDDING_LEVEL',
-        subject='SUBJECT',
-        within=['STOP_CONDITION', 'VALUE_LEVEL']
+        depvar="BIDDING_LEVEL",
+        subject="SUBJECT",
+        within=["STOP_CONDITION", "VALUE_LEVEL"],
     ).fit()
-    
+
     # Create anovas directory if it doesn't exist
-    anova_dir = output_dir / 'anovas'
+    anova_dir = output_dir / "anovas"
     anova_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Save results to file
-    output_file = anova_dir / f'{location}_{subject_type}_rm_anova_results.txt'
-    with open(output_file, 'w') as f:
-        f.write(f"Repeated Measures ANOVA Results for {location} - {subject_type} subjects\n")
+    output_file = anova_dir / f"{location}_{subject_type}_rm_anova_results.txt"
+    with open(output_file, "w") as f:
+        f.write(
+            f"Repeated Measures ANOVA Results for {location} - {subject_type} subjects\n"
+        )
         f.write("=" * 80 + "\n\n")
         f.write(str(anova_results))
 
@@ -840,10 +959,10 @@ def perform_rm_anova(df: pd.DataFrame, location: str, subject_type: str, output_
 def combine_location_data(data_dict: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Combine data from all locations into a single DataFrame.
-    
+
     Args:
         data_dict: Dictionary of DataFrames by location
-    
+
     Returns:
         Combined DataFrame with all locations
     """
@@ -851,104 +970,120 @@ def combine_location_data(data_dict: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     dfs = []
     for location, df in data_dict.items():
         df_copy = df.copy()
-        df_copy['LOCATION'] = location
+        df_copy["LOCATION"] = location
         dfs.append(df_copy)
-    
+
     return pd.concat(dfs, ignore_index=True)
 
 
-def perform_equivalence_testing(df: pd.DataFrame, location: str, subject_type: str, equivalence_margin: float = 0.5) -> pd.DataFrame:
+def perform_equivalence_testing(
+    df: pd.DataFrame, location: str, subject_type: str, equivalence_margin: float = 0.5
+) -> pd.DataFrame:
     """
     Perform equivalence testing on the data.
-    
+
     Args:
         df: Processed DataFrame with bidding data
         location: Collection location
         subject_type: Type of subjects ('all', 'included', or 'phase1')
         equivalence_margin: Margin for equivalence testing
-    
+
     Returns:
         DataFrame with equivalence testing results
     """
     # Ensure STOP_CONDITION is categorical
-    df['STOP_CONDITION'] = df['STOP_CONDITION'].astype('category')
-    
+    df["STOP_CONDITION"] = df["STOP_CONDITION"].astype("category")
+
     # Aggregate BIDDING_LEVEL by SUBJECT and STOP_CONDITION
-    aggregated_df = df.groupby(['SUBJECT', 'STOP_CONDITION'], observed=True)['BIDDING_LEVEL'].mean().reset_index()
-    
+    aggregated_df = (
+        df.groupby(["SUBJECT", "STOP_CONDITION"], observed=True)["BIDDING_LEVEL"]
+        .mean()
+        .reset_index()
+    )
+
     # Pivot to align paired observations
-    paired_df = aggregated_df.pivot(index='SUBJECT', 
-                                  columns='STOP_CONDITION', 
-                                  values='BIDDING_LEVEL').dropna()
-    
-    stop_group = paired_df['Stop']
-    no_stop_group = paired_df['No Stop']
-    
+    paired_df = aggregated_df.pivot(
+        index="SUBJECT", columns="STOP_CONDITION", values="BIDDING_LEVEL"
+    ).dropna()
+
+    stop_group = paired_df["Stop"]
+    no_stop_group = paired_df["No Stop"]
+
     # Calculate statistics
     diff = no_stop_group - stop_group
     n = len(diff)
-    
+
     # Lower bound test (null: diff <= -margin)
     t_lower = (np.mean(diff) + equivalence_margin) / (np.std(diff, ddof=1) / np.sqrt(n))
-    p_lower = 1 - stats.t.cdf(t_lower, df=n-1)
-    
+    p_lower = 1 - stats.t.cdf(t_lower, df=n - 1)
+
     # Upper bound test (null: diff >= margin)
     t_upper = (np.mean(diff) - equivalence_margin) / (np.std(diff, ddof=1) / np.sqrt(n))
-    p_upper = stats.t.cdf(t_upper, df=n-1)
-    
+    p_upper = stats.t.cdf(t_upper, df=n - 1)
+
     # Create results DataFrame
-    return pd.DataFrame([{
-        'Location': location,
-        'Subject_Type': subject_type,
-        'N': n,
-        'Mean_Difference': np.mean(diff),
-        'SD_Difference': np.std(diff, ddof=1),
-        'Equivalence_Margin': equivalence_margin,
-        'TOST_lower_p': p_lower,
-        'TOST_upper_p': p_upper,
-        'Equivalent': p_lower < 0.05 and p_upper < 0.05
-    }])
+    return pd.DataFrame(
+        [
+            {
+                "Location": location,
+                "Subject_Type": subject_type,
+                "N": n,
+                "Mean_Difference": np.mean(diff),
+                "SD_Difference": np.std(diff, ddof=1),
+                "Equivalence_Margin": equivalence_margin,
+                "TOST_lower_p": p_lower,
+                "TOST_upper_p": p_upper,
+                "Equivalent": p_lower < 0.05 and p_upper < 0.05,
+            }
+        ]
+    )
 
 
-def convert_to_jasp_format(df: pd.DataFrame, location: str, subject_type: str) -> pd.DataFrame:
+def convert_to_jasp_format(
+    df: pd.DataFrame, location: str, subject_type: str
+) -> pd.DataFrame:
     """
     Convert DataFrame to JASP format and save.
-    
+
     Args:
         df: DataFrame to convert
         location: Collection location
         subject_type: Type of subjects ('all', 'included', or 'phase1')
-    
+
     Returns:
         Converted DataFrame in JASP format
     """
     # Aggregate: Compute mean BIDDING_LEVEL for each SUBJECT and STOP_CONDITION
-    aggregated_df = df.groupby(['SUBJECT', 'STOP_CONDITION'])['BIDDING_LEVEL'].mean().unstack()
-    
+    aggregated_df = (
+        df.groupby(["SUBJECT", "STOP_CONDITION"])["BIDDING_LEVEL"].mean().unstack()
+    )
+
     # Rename columns
-    aggregated_df.columns = ['No_Stop', 'Stop']
-    
+    aggregated_df.columns = ["No_Stop", "Stop"]
+
     # Reset index to make SUBJECT a column
     aggregated_df.reset_index(inplace=True)
-    
+
     return aggregated_df
 
 
-def process_subject_files(data_dir: Path, location: str, excluded_subjects: List[str]) -> Tuple[List[Dict], List[Dict]]:
+def process_subject_files(
+    data_dir: Path, location: str, excluded_subjects: List[str]
+) -> Tuple[List[Dict], List[Dict]]:
     """Process all subject files in a location and separate into all and included metrics."""
     location_dir = data_dir / location
     all_metrics = []
     included_metrics = []
-    
-    for file_path in location_dir.glob('*.csv'):
+
+    for file_path in location_dir.glob("*.csv"):
         subject_id = file_path.stem
         df = pd.read_csv(file_path)
         subject_metrics = process_stop_signal_data(subject_id, df, location)
-        
+
         all_metrics.append(subject_metrics)
         if subject_id not in excluded_subjects:
             included_metrics.append(subject_metrics)
-    
+
     return all_metrics, included_metrics
 
 
@@ -959,33 +1094,91 @@ def calculate_metric_means(metrics_list: List[Dict], metric_key: str) -> float:
 
 def format_metric_value(value: float, is_probability: bool) -> str:
     """Format metric value according to its type."""
-    return f'{value:.2f}' if is_probability else f'{int(value)}'
+    return f"{value:.2f}" if is_probability else f"{int(value)}"
 
 
-def create_stopping_results_table(data_dir: Path, location: str, excluded_subjects: List[str]) -> pd.DataFrame:
+def create_stopping_results_table(
+    data_dir: Path, location: str, excluded_subjects: List[str]
+) -> pd.DataFrame:
     """Create summary table of stopping results comparing all vs included subjects."""
     # Process all files
-    all_metrics, included_metrics = process_subject_files(data_dir, location, excluded_subjects)
-    
+    all_metrics, included_metrics = process_subject_files(
+        data_dir, location, excluded_subjects
+    )
+
     metric_display = {
-        'p2_go_RT': 'Go RT (ms)',
-        'p2_goRT_stop_shapes': 'Go RT Stop shapes (ms)',
-        'p2_goRT_go_shapes': 'Go RT Non-Stop Shapes (ms)',
-        'p2_stopfail_RT': 'Stop-Failure RT (ms)',
-        'p2_prob_stop': 'p(resp|signal)',
-        'p2_SSRT': 'SSRT (ms)'
+        "p2_go_RT": "Go RT (ms)",
+        "p2_goRT_stop_shapes": "Go RT Stop shapes (ms)",
+        "p2_goRT_go_shapes": "Go RT Non-Stop Shapes (ms)",
+        "p2_stopfail_RT": "Stop-Failure RT (ms)",
+        "p2_prob_stop": "p(resp|signal)",
+        "p2_SSRT": "SSRT (ms)",
     }
-    
-    summary_data = {location: [], 'All': [], 'Subset': []}
-    
+
+    summary_data = {location: [], "All": [], "Subset": []}
+
     for metric_key, display_name in metric_display.items():
         summary_data[location].append(display_name)
-        
+
         all_mean = calculate_metric_means(all_metrics, metric_key)
         included_mean = calculate_metric_means(included_metrics, metric_key)
-        
-        is_probability = metric_key == 'p2_prob_stop'
-        summary_data['All'].append(format_metric_value(all_mean, is_probability))
-        summary_data['Subset'].append(format_metric_value(included_mean, is_probability))
-    
+
+        is_probability = metric_key == "p2_prob_stop"
+        summary_data["All"].append(format_metric_value(all_mean, is_probability))
+        summary_data["Subset"].append(
+            format_metric_value(included_mean, is_probability)
+        )
+
     return pd.DataFrame(summary_data)
+
+
+def create_figure2(data_dir: Path, output_dir: Path):
+    """
+    Create bar plot of average IID effects by location with individual subject points.
+    """
+    # Prepare data for plotting
+    plot_data = []
+
+    for location_dir in data_dir.iterdir():
+        if not location_dir.is_dir() or location_dir.name.startswith("."):
+            continue
+
+        # Process each subject's data
+        for csv_file in location_dir.glob("*.csv"):
+            try:
+                df = pd.read_csv(csv_file)
+                iid_effect, _, _ = process_phase3_data(df)
+                if not np.isnan(iid_effect):
+                    plot_data.append(
+                        {"Sample": location_dir.name, "Devaluation": iid_effect}
+                    )
+            except Exception as e:
+                print(f"Error processing {csv_file}: {str(e)}")
+
+    # Convert to DataFrame
+    plot_df = pd.DataFrame(plot_data)
+    # Create the plot
+    plt.figure(figsize=(10, 6))
+    # Set y-axis limits from 0 to include all data points
+    # Define colors for each location
+    colors = {
+        "DR1": "#4C72B0",  # blue
+        "DR2": "#DD8452",  # orange
+        "Stanford": "#55A868",  # green
+        "Tel Aviv": "#C44E52",  # red
+        "UNC": "#8172B3",  # purple
+    }
+
+    # Add individual points
+    sns.stripplot(
+        data=plot_df, x="Sample", y="Devaluation", color="gray", size=5, alpha=0.6
+    )
+
+    sns.barplot(data=plot_df, x="Sample", y="Devaluation", palette=colors, alpha=0.5)
+
+    # Customize the plot
+    plt.xlabel("Sample")
+    plt.ylabel("Devaluation")
+    # Save the figure
+    plt.savefig(output_dir / "figure2.png", dpi=300, bbox_inches="tight")
+    plt.close()

@@ -1,17 +1,18 @@
 columns: 
   - raw_reward_magnitude:
-    Description: The raw reward magnitude of each stimulus shown in phase 1
+    Description: The raw reward magnitude of each stimulus shown in phase 1. This data was not available for DR1.
     Type: float
     Example: "0.0"
   - stim_reward:
     Description: The reward magnitude of each color-shape stimulus pairing 
-    (1 and 5 = low; 2 and 6 = mid low; 3 and 7 = mid high; 4 and 8 = high)
+    (1 and 5 = low; 2 and 6 = mid low; 3 and 7 = mid high; 4 and 8 = high). This data was not available for DR1.
     Type: float
     Example: "1.0"
   - stepwise_reward_magnitude:
     Description: The stepwise reward magnitude of each color-shape stimulus pairing ranging from 0-4. For example, stimuli with a 
     stim_reward of 1 or 5 will have a stepwise_reward_magnitude of 1. All stimuli can have some trials with a 
-    stepwise_reward_magnitude of 0. 
+    stepwise_reward_magnitude of 0. For DR1, these values were 0.5, 1, 2, and 4, where a value of 0.5 means the stimulus
+    has lesser reward magnitude and a value of 4 means the stimuli has greater reward magnitude. 
     Type: float
     Example: "0.0"
   - paired_with_stopping:
@@ -20,11 +21,12 @@ columns:
     Example: "0.0"
   - quadrant:
     Description: The quadrant that the stimulus is shown in. In phase 1, 1 = top L; 2 = top R; 3 = bottom R; 4 = bottom L. 
-    In phase 2, 5 = L; 6 = R.
+    In phase 2, 5 = L; 6 = R. In phase 3, the quadrant is always 7.
     Type: float
     Example: "1.0"
   - response:
     Description: The subject's response. In phase 1, 1 = top L; 2 = top R; 3 = bottom R; 4 = bottom L. In phase 2, 5 = L; 6 = R.
+    In phase 3, the responses range from 1-6 where 1 is the leftmost bidding value and 6 is the rightmost bidding value.
     Type: float
     Example: "1.0"
   - reaction_time:
@@ -38,7 +40,7 @@ columns:
     Example: "1.0"
   - num_trial_presentations:
     Description: The number of times a given trial is replayed. In phase 1 and 3, trials are replayed if the subject 
-    chooses the incorrect response/misses the trial.
+    chooses the incorrect response/misses the trial. This data was not available for DR1.
     Type: float
     Example: "1.0"
   - which_part:
