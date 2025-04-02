@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -7,6 +8,13 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats
 from statsmodels.stats.anova import AnovaRM
+
+warnings.filterwarnings('ignore')
+
+NO_RESPONSE = 0 # On stop signal trials, if subjects do not respond, 
+                # their response is assigned to 0
+MAX_P_RESPOND = 1 # If subjects respond on all stop signal trials, 
+                    # the probability of responding is assigned to 1
 
 # Define explicit knowledge subjects for each location
 EXPLICIT_KNOWLEDGE_SUBJECTS = {
@@ -301,7 +309,8 @@ def load_location_data(location: str) -> Dict[str, pd.DataFrame]:
         location (str): Name of the data collection location (e.g., 'DR2', 'UNC', etc.)
 
     Returns:
-        Dict[str, pd.DataFrame]: Dictionary with filenames as keys and pandas DataFrames as values
+        Dict[str, pd.DataFrame]: Dictionary with filenames as 
+        keys and pandas DataFrames as values
     """
     data_dir = get_data_dir() / location
     if not data_dir.exists():
@@ -343,7 +352,8 @@ def load_csv_files(subdirectory: str) -> Dict[str, pd.DataFrame]:
                                     If None, searches the main data directory.
 
     Returns:
-        Dict[str, pd.DataFrame]: Dictionary with filenames as keys and pandas DataFrames as values
+        Dict[str, pd.DataFrame]: Dictionary with filenames as 
+        keys and pandas DataFrames as values
     """
     data_dir = get_data_dir()
     if subdirectory:
@@ -437,43 +447,111 @@ def calculate_mean_rts(
     )
 
 
-def calculate_ssrt_components(
-    df_p2: pd.DataFrame, no_stop_signal_trials_stop_shapes: pd.DataFrame
-) -> Tuple[float, float]:
-    """Calculate SSRT and probability of stopping."""
-    trials_with_SS = df_p2.loc[df_p2["stop_signal_trial_type"] == "stop"]
-    p_respond = (
-        len(trials_with_SS)
-        - trials_with_SS.groupby("response").count().iloc[0].accuracy
-    ) / len(trials_with_SS)
+def calculate_p_respond(trials_with_ss: pd.DataFrame) -> float:
+    """
+    Calculate probability of responding on stop signal trials.
+    Returns MAX_P_RESPOND if there are no stop signal trials.
+    Args:
+        trials_with_SS: DataFrame containing only stop signal trials
+    Returns:
+        float: Probability of responding
+    """
+    if (trials_with_ss['response'] == NO_RESPONSE).any():
+        return (
+            len(trials_with_ss)
+            - trials_with_ss.groupby("response").count().iloc[0].accuracy
+        ) / len(trials_with_ss)
+    return MAX_P_RESPOND
 
-    # Calculate SSRT
-    rank = round(p_respond * len(no_stop_signal_trials_stop_shapes))
+def calculate_nth_rt(no_stop_signal_trials_stop_shapes: pd.DataFrame,
+                    rank: int) -> float:
+    """
+    Calculate the nth reaction time based on rank.
+    Args:
+        no_stop_signal_trials_stop_shapes: DataFrame of no-stop signal trials for stop shapes
+        rank: The rank to find the nth RT
+    Returns:
+        float: The nth reaction time
+    """
+    # Replace 0 RTs with 1000
+    no_stop_signal_trials_stop_shapes = no_stop_signal_trials_stop_shapes.copy()
     no_stop_signal_trials_stop_shapes["reaction_time_replaced"] = np.where(
         no_stop_signal_trials_stop_shapes["reaction_time"] == 0,
         1000,
-        no_stop_signal_trials_stop_shapes["reaction_time"],
+        no_stop_signal_trials_stop_shapes["reaction_time"]
     )
 
-    rank_left_trials = no_stop_signal_trials_stop_shapes.loc[
-        no_stop_signal_trials_stop_shapes["quadrant"] == 5
-    ].copy()
-    rank_right_trials = no_stop_signal_trials_stop_shapes.loc[
-        no_stop_signal_trials_stop_shapes["quadrant"] == 6
-    ].copy()
-
     try:
-        nth_rt = (
-            no_stop_signal_trials_stop_shapes.sort_values(by=["reaction_time_replaced"])
+        return (
+            no_stop_signal_trials_stop_shapes
+            .sort_values(by=["reaction_time_replaced"])
             .iloc[int(rank)]
             .reaction_time_replaced
         )
-        avg_ssd = (
-            rank_left_trials["left_SSD"].mean() + rank_right_trials["right_SSD"].mean()
-        ) / 2
-        ssrt = nth_rt - avg_ssd
-    except:
-        ssrt = float("nan")
+    except (IndexError, ValueError, TypeError):
+        return float("nan")
+
+
+def calculate_avg_ssd(no_stop_signal_trials_stop_shapes: pd.DataFrame) -> float:
+    """
+    Calculate average stop signal delay.
+    Args:
+        no_stop_signal_trials_stop_shapes: DataFrame of no-stop signal trials for stop shapes
+    Returns:
+        float: Average stop signal delay
+    """
+    rank_left_trials = no_stop_signal_trials_stop_shapes.loc[
+        no_stop_signal_trials_stop_shapes["quadrant"] == 5
+    ]
+    rank_right_trials = no_stop_signal_trials_stop_shapes.loc[
+        no_stop_signal_trials_stop_shapes["quadrant"] == 6
+    ]
+
+    return (
+        rank_left_trials["left_SSD"].mean() + rank_right_trials["right_SSD"].mean()
+    ) / 2
+
+
+def calculate_ssrt_value(nth_rt: float, avg_ssd: float) -> float:
+    """
+    Calculate stop signal reaction time.
+    Args:
+        nth_rt: The nth reaction time
+        avg_ssd: Average stop signal delay
+    Returns:
+        float: Stop signal reaction time
+    """
+    if np.isnan(nth_rt) or np.isnan(avg_ssd):
+        return float("nan")
+    return nth_rt - avg_ssd
+
+
+def calculate_ssrt_components(
+    df_p2: pd.DataFrame,
+    no_stop_signal_trials_stop_shapes: pd.DataFrame
+) -> Tuple[float, float]:
+    """
+    Calculate SSRT and probability of stopping.
+    Args:
+        df_p2: DataFrame containing part 2 data
+        no_stop_signal_trials_stop_shapes: DataFrame of no-stop signal 
+        trials for stop shapes
+    Returns:
+        Tuple[float, float]: SSRT and probability of responding
+    """
+    # Get trials with stop signal
+    trials_with_ss = df_p2.loc[df_p2["stop_signal_trial_type"] == "stop"]
+
+    # Calculate probability of responding
+    p_respond = calculate_p_respond(trials_with_ss)
+
+    # Calculate rank
+    rank = round(p_respond * len(no_stop_signal_trials_stop_shapes))
+
+    # Calculate components
+    nth_rt = calculate_nth_rt(no_stop_signal_trials_stop_shapes, rank)
+    avg_ssd = calculate_avg_ssd(no_stop_signal_trials_stop_shapes)
+    ssrt = calculate_ssrt_value(nth_rt, avg_ssd)
 
     return ssrt, p_respond
 
@@ -562,143 +640,6 @@ def check_exclusion_criteria(
     return subject_vector, reason
 
 
-def add_explicit_knowledge_exclusions(
-    location: str, behavioral_exclusions: List[Dict]
-) -> List[Dict]:
-    """Add explicit knowledge exclusions to the behavioral exclusions list."""
-    if location not in EXPLICIT_KNOWLEDGE_SUBJECTS:
-        return behavioral_exclusions
-
-    # Convert behavioral exclusions to a dict for easy lookup
-    excluded_subjects = {exc["subject_id"]: exc for exc in behavioral_exclusions}
-
-    for subject in EXPLICIT_KNOWLEDGE_SUBJECTS[location]:
-        if subject in excluded_subjects:
-            # Update reason if subject was already excluded for behavioral reasons
-            if excluded_subjects[subject]["reason"] == "Behavior":
-                excluded_subjects[subject]["reason"] = "Behavior and Explicit Knowledge"
-                excluded_subjects[subject]["detailed_reason"] = (
-                    f"Failed behavioral criteria ({excluded_subjects[subject]['detailed_reason']}) and reported explicit knowledge"
-                )
-        else:
-            # Add new exclusion for explicit knowledge
-            exclusion = {
-                "subject_id": subject,
-                "reason": "Explicit Knowledge",
-                "detailed_reason": "Explicit Knowledge",
-            }
-            behavioral_exclusions.append(exclusion)
-
-    # Special case for Stanford S834
-    if location == "Stanford" and "S834" in EXPLICIT_KNOWLEDGE_SUBJECTS[location]:
-        if "S834" not in excluded_subjects:
-            behavioral_exclusions.append(
-                {
-                    "subject_id": "S834",
-                    "reason": "Behavior",
-                    "detailed_reason": "SSD reached 0 and stayed there",
-                }
-            )
-
-    return sorted(behavioral_exclusions, key=lambda x: x["subject_id"])
-
-
-def process_csv_file(file_path: Path, dataset_collection_place: str) -> Dict:
-    """Process a single CSV file and return exclusion data."""
-    try:
-        df = pd.read_csv(file_path)
-        subject_id = file_path.stem
-
-        # Special case for Stanford S819
-        if dataset_collection_place.lower() == "stanford" and "S819" in file_path.name:
-            return {
-                "subject_id": subject_id,
-                "reason": "Behavior",
-                "detailed_reason": "Did not stop",
-            }
-
-        # Process behavioral data
-        metrics = process_stop_signal_data(subject_id, df, dataset_collection_place)
-        # Check exclusion criteria
-        subject_vector, reason = check_exclusion_criteria(
-            metrics["p2_stopfail_RT"],
-            metrics["p2_goRT_stop_shapes"],
-            metrics["p2_SSRT"],
-        )
-
-        if subject_vector != [1, 1]:  # If subject should be excluded
-            return {
-                "subject_id": subject_id,
-                "reason": "Behavior",
-                "detailed_reason": reason,
-                "metrics": metrics,
-            }
-        return {}
-
-    except Exception as e:
-        print(f"Error processing {file_path}: {str(e)}")
-        return {}
-
-
-def get_behavioral_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
-    """
-    Process all CSV files in each location directory and return exclusion data.
-
-    Returns:
-        Dict[str, List[Dict]]: Dictionary with locations as keys and lists of excluded subjects as values
-    """
-    exclusions = {}
-
-    for location_dir in data_dir.iterdir():
-        if not location_dir.is_dir() or location_dir.name.startswith("."):
-            continue
-
-        location_exclusions = []
-        csv_files = sorted(list(location_dir.glob("*.csv")))
-
-        if not csv_files:
-            print(f"No CSV files found in {location_dir}")
-            continue
-
-        print(f"Processing {len(csv_files)} files in {location_dir.name}")
-
-        for csv_file in csv_files:
-            exclusion_data = process_csv_file(csv_file, location_dir.name)
-            if exclusion_data:
-                location_exclusions.append(exclusion_data)
-
-        if location_exclusions:
-            # Add explicit knowledge exclusions
-            location_exclusions = add_explicit_knowledge_exclusions(
-                location_dir.name, location_exclusions
-            )
-            exclusions[location_dir.name] = location_exclusions
-    return exclusions
-
-
-def process_phase3_data(df: pd.DataFrame) -> Tuple[float, float, float]:
-    """Process phase 3 data to calculate IID effects."""
-    df_p3 = df[df["which_part"] == "part_3"].copy()
-
-    stop_shapes = df_p3[df_p3["paired_with_stopping"] == 1]
-    go_shapes = df_p3[df_p3["paired_with_stopping"] == 0]
-
-    stop_bid = stop_shapes["chosen_bidding_level"].mean()
-    go_bid = go_shapes["chosen_bidding_level"].mean()
-    iid_effect = go_bid - stop_bid  # Positive values indicate devaluation
-
-    return iid_effect, stop_bid, go_bid
-
-
-def calculate_iqr_cutoffs(iid_effects: List[float]) -> Tuple[float, float]:
-    """Calculate IQR-based cutoffs for outlier detection."""
-    q75, q25 = np.percentile(iid_effects, [75, 25])
-    iqr = q75 - q25
-    upper_cutoff = q75 + iqr * 1.5
-    lower_cutoff = q25 - iqr * 1.5
-    return upper_cutoff, lower_cutoff
-
-
 def get_iqr_exclusions(
     data_dir: Path, excluded_subjects: Dict[str, List[str]]
 ) -> Dict[str, List[Dict]]:
@@ -747,9 +688,7 @@ def get_iqr_exclusions(
                 print(f"Error processing {csv_file}: {str(e)}")
 
         if not iid_effects:
-            print(
-                f"No valid IID effects found for non-excluded subjects in {location_dir.name}"
-            )
+            print(f"No valid IID effects found for non-excluded subjects in {location_dir.name}")
             continue
 
         # Calculate cutoffs and identify outliers
@@ -770,16 +709,210 @@ def get_iqr_exclusions(
 
     return exclusions
 
+def add_explicit_knowledge_exclusions(
+    location: str, behavioral_exclusions: List[Dict]
+) -> List[Dict]:
+    """
+    Add explicit knowledge exclusions to the behavioral exclusions list.
+
+    Args:
+        location: Location identifier
+        behavioral_exclusions: List of behavioral exclusion dictionaries
+
+    Returns:
+        Updated list of exclusions including explicit knowledge
+    """
+    if location not in EXPLICIT_KNOWLEDGE_SUBJECTS:
+        return behavioral_exclusions
+
+    # Convert behavioral exclusions to a dict for easy lookup
+    excluded_subjects = {exc["subject_id"]: exc for exc in behavioral_exclusions}
+
+    for subject in EXPLICIT_KNOWLEDGE_SUBJECTS[location]:
+        if subject in excluded_subjects:
+            # Update reason if subject was already excluded for behavioral reasons
+            if excluded_subjects[subject]["reason"] == "Behavior":
+                excluded_subjects[subject]["reason"] = "Behavior and Explicit Knowledge"
+                excluded_subjects[subject]["detailed_reason"] = (
+                    f"Failed behavioral criteria ({excluded_subjects[subject]['detailed_reason']}) "
+                    "and reported explicit knowledge"
+                )
+        else:
+            # Add new exclusion for explicit knowledge
+            exclusion = {
+                "subject_id": subject,
+                "reason": "Explicit Knowledge",
+                "detailed_reason": "Explicit Knowledge",
+            }
+            behavioral_exclusions.append(exclusion)
+
+    # Special case for Stanford S834
+    if location == "Stanford" and "S834" in EXPLICIT_KNOWLEDGE_SUBJECTS[location]:
+        if "S834" not in excluded_subjects:
+            behavioral_exclusions.append(
+                {
+                    "subject_id": "S834",
+                    "reason": "Behavior",
+                    "detailed_reason": "SSD reached 0 and stayed there",
+                }
+            )
+
+    return sorted(behavioral_exclusions, key=lambda x: x["subject_id"])
+
+def get_behavioral_exclusions(file_path: Path, dataset_collection_place: str) -> Dict:
+    """
+    Process a single CSV file and return exclusion data.
+
+    Args:
+        file_path: Path to the subject's data file
+        dataset_collection_place: Location identifier
+
+    Returns:
+        Dictionary containing exclusion data if subject should be excluded, empty dict otherwise
+    """
+    try:
+        df = pd.read_csv(file_path)
+        subject_id = file_path.stem
+
+        # Special case for Stanford S819
+        if dataset_collection_place.lower() == "stanford" and "S819" in file_path.name:
+            return {
+                "subject_id": subject_id,
+                "reason": "Behavior",
+                "detailed_reason": "Did not stop",
+            }
+
+        # Process behavioral data
+        metrics = process_stop_signal_data(subject_id, df, dataset_collection_place)
+        # Check exclusion criteria
+        subject_vector, reason = check_exclusion_criteria(
+            metrics["p2_stopfail_RT"],
+            metrics["p2_goRT_stop_shapes"],
+            metrics["p2_SSRT"],
+        )
+
+        if subject_vector != [1, 1]:  # If subject should be excluded
+            return {
+                "subject_id": subject_id,
+                "reason": "Behavior",
+                "detailed_reason": reason,
+                "metrics": metrics,
+            }
+        return {}
+
+    except Exception as e:
+        print(f"Error processing {file_path}: {str(e)}")
+        return {}
+
+
+def get_both_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
+    """
+    Process all CSV files in each location directory and return behavior + knowledge exclusion data.
+
+    Args:
+        data_dir: Path to data directory
+
+    Returns:
+        Dict[str, List[Dict]]: Dictionary with locations as keys and lists of excluded subjects as values
+    """
+    exclusions = {}
+
+    for location_dir in data_dir.iterdir():
+        if not location_dir.is_dir() or location_dir.name.startswith("."):
+            continue
+
+        location_exclusions = []
+        csv_files = sorted(list(location_dir.glob("*.csv")))
+
+        if not csv_files:
+            print(f"No CSV files found in {location_dir}")
+            continue
+
+        print(f"Processing {len(csv_files)} files in {location_dir.name}")
+
+        for csv_file in csv_files:
+            exclusion_data = get_behavioral_exclusions(csv_file, location_dir.name)
+            if exclusion_data:
+                location_exclusions.append(exclusion_data)
+
+        if location_exclusions:
+            # Add explicit knowledge exclusions
+            location_exclusions = add_explicit_knowledge_exclusions(
+                location_dir.name, location_exclusions
+            )
+            exclusions[location_dir.name] = location_exclusions
+    return exclusions
+
+
+def compute_rm_anova(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Compute repeated measures ANOVA with data aggregation.
+    Args:
+        df: DataFrame with columns SUBJECT, STOP_CONDITION, VALUE_LEVEL, BIDDING_LEVEL
+    Returns:
+        AnovaResults object with the analysis results
+    """
+    # Ensure categorical variables
+    df["STOP_CONDITION"] = df["STOP_CONDITION"].astype("category")
+    df["VALUE_LEVEL"] = df["VALUE_LEVEL"].astype("category")
+
+    # Aggregate data by taking the mean for each subject/condition combination
+    df_agg = (
+        df.groupby(["SUBJECT", "STOP_CONDITION", "VALUE_LEVEL"],
+                  observed=True)["BIDDING_LEVEL"]
+        .mean()
+        .reset_index()
+    )
+
+    # Perform repeated measures ANOVA
+    return AnovaRM(
+        data=df_agg,
+        depvar="BIDDING_LEVEL",
+        subject="SUBJECT",
+        within=["STOP_CONDITION", "VALUE_LEVEL"],
+    ).fit()
+
+def save_rm_anova_results(
+    anova_results: pd.DataFrame,
+    location: str,
+    subject_type: str,
+    output_dir: Path
+) -> None:
+    """Save ANOVA results to file."""
+    anova_dir = output_dir / "anovas"
+    anova_dir.mkdir(parents=True, exist_ok=True)
+
+    output_file = anova_dir / f"{location}_{subject_type}_rm_anova_results.txt"
+    with open(output_file, "w") as f:
+        f.write(f"Repeated Measures ANOVA Results for {location} - {subject_type} subjects\n")
+        f.write("=" * 80 + "\n\n")
+        f.write(str(anova_results))
+
+def calculate_mean_bids(stop_shapes: pd.DataFrame,
+                       go_shapes: pd.DataFrame) -> Tuple[float, float]:
+    """Calculate mean bidding levels."""
+    stop_bid = stop_shapes["chosen_bidding_level"].mean()
+    go_bid = go_shapes["chosen_bidding_level"].mean()
+    return stop_bid, go_bid
 
 def process_subject_data(file_path: Path, location: str) -> pd.DataFrame:
-    """Process individual subject data file."""
+    """
+    Process individual subject data file.
+    
+    Args:
+        file_path: Path to the subject's data file
+        location: Location identifier
+    Returns:
+        DataFrame with processed subject data
+    """
     df = pd.read_csv(file_path)
-    subject_id = file_path.stem  # Gets filename without extension
+    subject_id = file_path.stem
 
     df["BIDDING_LEVEL"] = df["chosen_bidding_level"]
     value_level_mapping = {1: "L", 2: "LM", 3: "HM", 4: "H"}
     if location == "DR1":
         value_level_mapping = {0.5: "L", 1: "LM", 2: "HM", 4: "H"}
+
     df["VALUE_LEVEL"] = df["stepwise_reward_magnitude"].map(value_level_mapping)
     df["SUBJECT"] = subject_id
 
@@ -793,6 +926,127 @@ def process_subject_data(file_path: Path, location: str) -> pd.DataFrame:
     )
 
     return df_agg[["SUBJECT", "VALUE_LEVEL", "STOP_CONDITION", "BIDDING_LEVEL"]]
+
+def compute_equivalence_test(
+    df: pd.DataFrame,
+    equivalence_margin: float = 0.5
+) -> dict:
+    """
+    Compute equivalence testing statistics.
+    Args:
+        df: DataFrame with columns SUBJECT, STOP_CONDITION, BIDDING_LEVEL
+        equivalence_margin: Margin for equivalence testing
+    Returns:
+        Dictionary containing test results
+    """
+    # Ensure STOP_CONDITION is categorical
+    df["STOP_CONDITION"] = df["STOP_CONDITION"].astype("category")
+
+    # Aggregate and pivot
+    aggregated_df = df.groupby(["SUBJECT", "STOP_CONDITION"],
+                             observed=True)["BIDDING_LEVEL"].mean().reset_index()
+    paired_df = aggregated_df.pivot(index="SUBJECT",
+                                  columns="STOP_CONDITION",
+                                  values="BIDDING_LEVEL").dropna()
+
+    stop_group = paired_df["Stop"]
+    no_stop_group = paired_df["No Stop"]
+
+    # Calculate statistics
+    diff = no_stop_group - stop_group
+    n = len(diff)
+    mean_diff = np.mean(diff)
+    sd_diff = np.std(diff, ddof=1)
+
+    # Calculate t-statistics
+    t_lower = (mean_diff + equivalence_margin) / (sd_diff / np.sqrt(n))
+    t_upper = (mean_diff - equivalence_margin) / (sd_diff / np.sqrt(n))
+
+    # Calculate p-values
+    p_lower = 1 - stats.t.cdf(t_lower, df=n-1)
+    p_upper = stats.t.cdf(t_upper, df=n-1)
+
+    return {
+        "N": n,
+        "Mean_Difference": mean_diff,
+        "SD_Difference": sd_diff,
+        "Equivalence_Margin": equivalence_margin,
+        "TOST_lower_p": p_lower,
+        "TOST_upper_p": p_upper,
+        "Equivalent": p_lower < 0.05 and p_upper < 0.05
+    }
+
+def save_equivalence_test_results(
+    test_results: dict,
+    location: str,
+    subject_type: str,
+    output_dir: Path
+) -> None:
+    """Save equivalence test results to file."""
+    equiv_dir = output_dir / "equivalence_tests"
+    equiv_dir.mkdir(parents=True, exist_ok=True)
+
+    output_file = equiv_dir / f"{location}_{subject_type}_equivalence_test.txt"
+    with open(output_file, "w") as f:
+        f.write(f"Equivalence Test Results for {location} - {subject_type} subjects\n")
+        f.write("=" * 80 + "\n\n")
+        for key, value in test_results.items():
+            f.write(f"{key}: {value}\n")
+
+# Split process_phase3_data into smaller functions
+def get_phase3_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Extract phase 3 data from DataFrame."""
+    return df[df["which_part"] == "part_3"].copy()
+
+def separate_shape_types(df_p3: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Separate stop and go shapes."""
+    stop_shapes = df_p3[df_p3["paired_with_stopping"] == 1]
+    go_shapes = df_p3[df_p3["paired_with_stopping"] == 0]
+    return stop_shapes, go_shapes
+
+def calculate_mean_bids(stop_shapes: pd.DataFrame, 
+                        go_shapes: pd.DataFrame) -> Tuple[float, float]:
+    """Calculate mean bidding levels."""
+    stop_bid = stop_shapes["chosen_bidding_level"].mean()
+    go_bid = go_shapes["chosen_bidding_level"].mean()
+    return stop_bid, go_bid
+
+def calculate_iid_effect(stop_bid: float, go_bid: float) -> float:
+    """Calculate IID effect."""
+    return go_bid - stop_bid  # Positive values indicate devaluation
+
+def process_phase3_data(df: pd.DataFrame) -> Tuple[float, float, float]:
+    """
+    Process phase 3 data to calculate IID effects.
+    
+    Args:
+        df: DataFrame containing phase 3 data
+    Returns:
+        Tuple containing (iid_effect, stop_bid, go_bid)
+    """
+    df_p3 = df[df["which_part"] == "part_3"].copy()
+
+    stop_shapes, go_shapes = separate_shape_types(df_p3)
+    stop_bid, go_bid = calculate_mean_bids(stop_shapes, go_shapes)
+    iid_effect = calculate_iid_effect(stop_bid, go_bid)
+
+    return iid_effect, stop_bid, go_bid
+
+
+def calculate_iqr_cutoffs(iid_effects: List[float]) -> Tuple[float, float]:
+    """
+    Calculate IQR-based cutoffs for outlier detection.
+    
+    Args:
+        iid_effects: List of IID effect values
+    Returns:
+        Tuple containing (upper_cutoff, lower_cutoff)
+    """
+    q75, q25 = np.percentile(iid_effects, [75, 25])
+    iqr = q75 - q25
+    upper_cutoff = q75 + iqr * 1.5
+    lower_cutoff = q25 - iqr * 1.5
+    return upper_cutoff, lower_cutoff
 
 
 def get_processed_data(
@@ -856,8 +1110,6 @@ def get_processed_data(
 
         if dfs:
             processed_data[location] = pd.concat(dfs, ignore_index=True)
-        else:
-            print(f"No valid data processed for {location}")
 
     return processed_data
 
@@ -949,9 +1201,7 @@ def perform_rm_anova(
     # Save results to file
     output_file = anova_dir / f"{location}_{subject_type}_rm_anova_results.txt"
     with open(output_file, "w") as f:
-        f.write(
-            f"Repeated Measures ANOVA Results for {location} - {subject_type} subjects\n"
-        )
+        f.write(f"Repeated Measures ANOVA Results for {location} - {subject_type} subjects\n")
         f.write("=" * 80 + "\n\n")
         f.write(str(anova_results))
 
@@ -1070,7 +1320,8 @@ def convert_to_jasp_format(
 def process_subject_files(
     data_dir: Path, location: str, excluded_subjects: List[str]
 ) -> Tuple[List[Dict], List[Dict]]:
-    """Process all subject files in a location and separate into all and included metrics."""
+    """Process all subject files in a location and separate into 
+    all and included metrics."""
     location_dir = data_dir / location
     all_metrics = []
     included_metrics = []

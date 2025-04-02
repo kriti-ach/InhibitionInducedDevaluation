@@ -6,7 +6,7 @@ from inhibition_induced_devaluation.utils.utils import (
     create_devaluation_figure,
     create_figure2,
     create_stopping_results_table,
-    get_behavioral_exclusions,
+    get_both_exclusions,
     get_data_dir,
     get_iqr_exclusions,
     get_processed_data,
@@ -29,7 +29,7 @@ def main():
         # Get IQR exclusions only for non-excluded subjects
 
     # Get behavioral exclusions
-    behavioral_exclusions = get_behavioral_exclusions(data_dir)
+    behavioral_exclusions = get_both_exclusions(data_dir)
 
     # Get IQR-based exclusions
     iqr_exclusions = get_iqr_exclusions(

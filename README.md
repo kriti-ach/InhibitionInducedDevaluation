@@ -18,11 +18,7 @@ cd /path/to/InhibitionInducedDevaluation
 
 Set up the environment using:
 ```bash
-uv sync
-```
-
-```bash
-source .venv/bin/activate
+source setup_env.sh
 ```
 
 ## Repository Structure
