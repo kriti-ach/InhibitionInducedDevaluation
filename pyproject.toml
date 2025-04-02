@@ -24,12 +24,33 @@ dev = [
     "ruff>=0.11.2",
 ]
 
-[tool.ruff.lint]
-ignore = ["F821"]  # Ignore the error
+[project.scripts]
+uv-cookie = "uv_cookie:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.ruff]
+extend-include = ["*.ipynb"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+extend-select = ["E501", "W", "N", "R", "I"]
+
 [tool.pytest.ini_options]
 testpaths=['tests']
+
+[tool.pyright]
+exclude = ['.venv']
+venvPath = '.'
+venv = '.venv'
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["inhibition_induced_devaluation"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/inhibition_induced_devaluation"]
