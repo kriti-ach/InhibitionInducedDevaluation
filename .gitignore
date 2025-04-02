@@ -27,3 +27,8 @@ Thumbs.d
 
 # JASP files
 output/csvs_for_jasp/
+
+.env.example
+.pre-commit-config.yaml
+.python-version
+
