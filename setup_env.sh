@@ -1,6 +1,9 @@
+# Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
+# Create and activate virtual environment
 uv sync
 source .venv/bin/activate
 
-python -m inhibition_induced_devaluation.main
+# Run the main script to produce figures
+uv run main
