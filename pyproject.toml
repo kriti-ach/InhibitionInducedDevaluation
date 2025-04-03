@@ -26,7 +26,7 @@ dev = [
 ]
 
 [project.scripts]
-uv-cookie = "uv_cookie:main"
+main = "inhibition_induced_devaluation.main:main"
 
 [build-system]
 requires = ["hatchling"]
