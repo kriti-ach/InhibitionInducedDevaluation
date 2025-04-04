@@ -39,3 +39,7 @@ source setup_env.sh
     - Run tests using `uv run pytest`
 - /output:
     - Contains output stats including ANOVAs, equivalence tests, and Bayes Factors. 
+
+## Notes
+
+This repository used the Cookiecutter template from: https://github.com/lobennett/uv_cookie
