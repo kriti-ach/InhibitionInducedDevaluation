@@ -1118,9 +1118,9 @@ def create_stopping_results_table(
     return pd.DataFrame(summary_data)
 
 
-def create_figure2(data_dir: Path, output_dir: Path):
+def create_figure2(data_dir: Path, figure_dir: Path):
     """
-    Create bar plot of average IID effects by location with individual subject points.
+    Create stripplot of IID effects by location with individual subject points and confidence intervals.
     """
     # Prepare data for plotting
     plot_data = []
@@ -1133,7 +1133,7 @@ def create_figure2(data_dir: Path, output_dir: Path):
         for csv_file in location_dir.glob("*.csv"):
             try:
                 df = pd.read_csv(csv_file)
-                iid_effect, _, _ = process_phase3_data(df)
+                iid_effect, _, _ = process_phase3_data(df)  # Assuming this function exists
                 if not np.isnan(iid_effect):
                     plot_data.append(
                         {"Sample": location_dir.name, "Devaluation": iid_effect}
@@ -1143,28 +1143,34 @@ def create_figure2(data_dir: Path, output_dir: Path):
 
     # Convert to DataFrame
     plot_df = pd.DataFrame(plot_data)
+
+    if plot_df.empty:  # Handle the case where no data was loaded.
+        print("No data to plot. Skipping figure creation.")
+        return
+
     # Create the plot
     plt.figure(figsize=(10, 6))
-    # Set y-axis limits from 0 to include all data points
-    # Define colors for each location
-    colors = {
-        "DR1": "#4C72B0",  # blue
-        "DR2": "#DD8452",  # orange
-        "Stanford": "#55A868",  # green
-        "Tel Aviv": "#C44E52",  # red
-        "UNC": "#8172B3",  # purple
-    }
 
-    # Add individual points
+    # Combine stripplot with pointplot for individual points and CIs
     sns.stripplot(
-        data=plot_df, x="Sample", y="Devaluation", color="gray", size=5, alpha=0.6
-    )
+        data=plot_df, x="Sample", y="Devaluation", color="gray", size=5, alpha=0.3, jitter=True
+    )  # Add jitter
 
-    sns.barplot(data=plot_df, x="Sample", y="Devaluation", palette=colors, alpha=0.5)
+    sns.pointplot(
+        data=plot_df,
+        x="Sample",
+        y="Devaluation",
+        join=False,  # Don't connect the points with lines
+        markers="d",  # Use diamond markers
+        color="black",  # Make the points black
+        capsize=0.2,  # Add caps to the error bars for better visibility
+        errorbar="se", # Show standard error for the error bars
+    )
 
     # Customize the plot
     plt.xlabel("Sample")
     plt.ylabel("Devaluation")
+    plt.title("IID Effect with Confidence Intervals")  # Add a title
     # Save the figure
-    plt.savefig(output_dir / "figure2.png", dpi=300, bbox_inches="tight")
+    plt.savefig(figure_dir / "figure2.png", dpi=300, bbox_inches="tight")
     plt.close()
