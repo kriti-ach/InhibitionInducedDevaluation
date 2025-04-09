@@ -1,0 +1,12 @@
+Exclusions for DR2
+==================================================
+
+Behavioral Exclusions:
+------------------------------
+  • exclude - SSRT is lower than the minimum SSRT: 3
+
+Explicit Knowledge: 17
+Both Behavioral and Explicit Knowledge: 2
+Total Behavioral + Explicit Knowledge Exclusions for DR2: 18
+IQR-based exclusions: 2
+Total excluded subjects: 20

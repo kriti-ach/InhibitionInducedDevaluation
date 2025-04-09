@@ -1,0 +1,14 @@
+Exclusions for Tel Aviv
+==================================================
+
+Behavioral Exclusions:
+------------------------------
+  • exclude - SSRT is lower than the minimum SSRT: 11
+  • exclude - stop fail RT is >= no-stop RT: 6
+  • exclude - failed both criteria: 5
+
+Explicit Knowledge: 55
+Both Behavioral and Explicit Knowledge: 15
+Total Behavioral + Explicit Knowledge Exclusions for Tel Aviv: 62
+IQR-based exclusions: 5
+Total excluded subjects: 67

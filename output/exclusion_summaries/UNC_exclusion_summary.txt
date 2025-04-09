@@ -1,0 +1,13 @@
+Exclusions for UNC
+==================================================
+
+Behavioral Exclusions:
+------------------------------
+  • exclude - SSRT is lower than the minimum SSRT: 12
+  • exclude - failed both criteria: 1
+
+Explicit Knowledge: 63
+Both Behavioral and Explicit Knowledge: 9
+Total Behavioral + Explicit Knowledge Exclusions for UNC: 67
+IQR-based exclusions: 7
+Total excluded subjects: 74

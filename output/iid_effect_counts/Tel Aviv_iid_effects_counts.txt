@@ -1,0 +1,20 @@
+Location: Tel Aviv
+All Subjects: 151
+Included Subjects: 84
+Phase 1 Explicit Knowledge: 17
+--------------------------------------------------
+All Subjects:
+Positive IID effects: 69
+Negative IID effects: 79
+Zero IID effects: 3
+--------------------------------------------------
+Included Subjects:
+Positive IID effects: 38
+Negative IID effects: 43
+Zero IID effects: 3
+--------------------------------------------------
+Phase 1 Explicit Knowledge:
+Positive IID effects: 8
+Negative IID effects: 9
+Zero IID effects: 0
+--------------------------------------------------

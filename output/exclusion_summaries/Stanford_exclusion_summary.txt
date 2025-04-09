@@ -1,0 +1,14 @@
+Exclusions for Stanford
+==================================================
+
+Behavioral Exclusions:
+------------------------------
+  • exclude - SSRT is lower than the minimum SSRT: 20
+  • exclude - failed both criteria: 1
+  • exclude - stop fail RT is >= no-stop RT: 3
+
+Explicit Knowledge: 53
+Both Behavioral and Explicit Knowledge: 9
+Total Behavioral + Explicit Knowledge Exclusions for Stanford: 68
+IQR-based exclusions: 7
+Total excluded subjects: 75

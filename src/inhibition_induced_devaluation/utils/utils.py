@@ -8,7 +8,7 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats
 from statsmodels.stats.anova import AnovaRM
-from inhibition_induced_devaluation.utils.globals import NO_RESPONSE, MAX_P_RESPOND, EXPLICIT_KNOWLEDGE_SUBJECTS, MAX_RT, PHASE1_EXPLICIT_KNOWLEDGE
+from inhibition_induced_devaluation.utils.globals import NO_RESPONSE, MAX_P_RESPOND, EXPLICIT_KNOWLEDGE_SUBJECTS, PHASE1_EXPLICIT_KNOWLEDGE
 
 warnings.filterwarnings('ignore')
 
@@ -481,17 +481,6 @@ def add_explicit_knowledge_exclusions(
             }
             behavioral_exclusions.append(exclusion)
 
-    # Special case for Stanford S834
-    if location == "Stanford" and "S834" in EXPLICIT_KNOWLEDGE_SUBJECTS[location]:
-        if "S834" not in excluded_subjects:
-            behavioral_exclusions.append(
-                {
-                    "subject_id": "S834",
-                    "reason": "Behavior",
-                    "detailed_reason": "SSD reached 0 and stayed there",
-                }
-            )
-
     return sorted(behavioral_exclusions, key=lambda x: x["subject_id"])
 
 def get_behavioral_exclusions(file_path: Path, dataset_collection_place: str) -> Dict:
@@ -508,14 +497,6 @@ def get_behavioral_exclusions(file_path: Path, dataset_collection_place: str) ->
     try:
         df = pd.read_csv(file_path)
         subject_id = file_path.stem
-
-        # Special case for Stanford S819
-        if dataset_collection_place.lower() == "stanford" and "S819" in file_path.name:
-            return {
-                "subject_id": subject_id,
-                "reason": "Behavior",
-                "detailed_reason": "Did not stop",
-            }
 
         # Process behavioral data
         metrics = process_stop_signal_data(subject_id, df, dataset_collection_place)
@@ -539,6 +520,21 @@ def get_behavioral_exclusions(file_path: Path, dataset_collection_place: str) ->
         print(f"Error processing {file_path}: {str(e)}")
         return {}
 
+def save_exclusion_summary(location: str, location_behavioral_reasons: Dict[str, int], location_explicit_knowledge: int, location_both: int, output_dir: Path):
+    """Save exclusion summary for a location."""
+    with open(output_dir / f"{location}_exclusion_summary.txt", "w") as f:
+        f.write(f"Exclusions for {location}\n")
+        f.write("=" * 50 + "\n")
+        f.write("\nBehavioral Exclusions:\n")
+        f.write("-" * 30 + "\n")
+        for reason, count in location_behavioral_reasons.items():
+            if count > 0:  # Only write if there are subjects with this reason
+                f.write(f"  • {reason}: {count}\n")
+
+        f.write(f"\nExplicit Knowledge: {location_explicit_knowledge + location_both}\n")
+        f.write(f"Both Behavioral and Explicit Knowledge: {location_both}\n")
+        f.write(f"Total Behavioral + Explicit Knowledge Exclusions for {location}: {sum(location_behavioral_reasons.values()) + location_explicit_knowledge + location_both}\n")
+
 
 def get_both_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
     """
@@ -551,6 +547,8 @@ def get_both_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
         Dict[str, List[Dict]]: Dictionary with locations as keys and lists of excluded subjects as values
     """
     exclusions = {}
+    output_dir = data_dir.parent / "output" / "exclusion_summaries"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     for location_dir in data_dir.iterdir():
         if not location_dir.is_dir() or location_dir.name.startswith("."):
@@ -563,7 +561,7 @@ def get_both_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
             print(f"No CSV files found in {location_dir}")
             continue
 
-        print(f"Processing {len(csv_files)} files in {location_dir.name}")
+        print(f"\nProcessing {len(csv_files)} files in {location_dir.name}")
 
         for csv_file in csv_files:
             exclusion_data = get_behavioral_exclusions(csv_file, location_dir.name)
@@ -571,11 +569,34 @@ def get_both_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
                 location_exclusions.append(exclusion_data)
 
         if location_exclusions:
+            # Initialize location-specific counters
+            location_behavioral_reasons = {}
+            location_explicit_knowledge = 0
+            location_both = 0
+
+            # Count behavioral reasons before adding explicit knowledge
+            for exc in location_exclusions:
+                if exc["reason"] == "Behavior":
+                    reason = exc["detailed_reason"]
+                    location_behavioral_reasons[reason] = location_behavioral_reasons.get(reason, 0) + 1
+
             # Add explicit knowledge exclusions
             location_exclusions = add_explicit_knowledge_exclusions(
                 location_dir.name, location_exclusions
             )
+            
+            # Count explicit knowledge and both for this location
+            for exc in location_exclusions:
+                if exc["reason"] == "Explicit Knowledge":
+                    location_explicit_knowledge += 1
+                elif exc["reason"] == "Behavior and Explicit Knowledge":
+                    location_both += 1
+                    # Remove from behavioral count since it's now counted as both
+                    reason = exc["detailed_reason"].split(" and reported explicit knowledge")[0]
+                    location_behavioral_reasons[reason] = location_behavioral_reasons.get(reason, 0) - 1
+            save_exclusion_summary(location_dir.name, location_behavioral_reasons, location_explicit_knowledge, location_both, output_dir)
             exclusions[location_dir.name] = location_exclusions
+
     return exclusions
 
 
@@ -1016,6 +1037,8 @@ def perform_equivalence_testing(
                 "Mean_Difference": np.mean(diff),
                 "SD_Difference": np.std(diff, ddof=1),
                 "Equivalence_Margin": equivalence_margin,
+                "TOST_lower_t": t_lower,
+                "TOST_upper_t": t_upper,
                 "TOST_lower_p": p_lower,
                 "TOST_upper_p": p_upper,
                 "Equivalent": p_lower < 0.05 and p_upper < 0.05,
@@ -1133,7 +1156,7 @@ def create_figure2(data_dir: Path, figure_dir: Path):
         for csv_file in location_dir.glob("*.csv"):
             try:
                 df = pd.read_csv(csv_file)
-                iid_effect, _, _ = process_phase3_data(df)  # Assuming this function exists
+                iid_effect, _, _ = process_phase3_data(df)
                 if not np.isnan(iid_effect):
                     plot_data.append(
                         {"Sample": location_dir.name, "Devaluation": iid_effect}
@@ -1174,3 +1197,125 @@ def create_figure2(data_dir: Path, figure_dir: Path):
     # Save the figure
     plt.savefig(figure_dir / "figure2.png", dpi=300, bbox_inches="tight")
     plt.close()
+
+def find_devaluation_counts(positive_counts: float, negative_counts: float, zero_counts: float, iid_effect: float) -> Tuple[int, int, int]:
+    """
+    Find the counts of positive, negative, and zero IID effects.
+    """
+    if iid_effect > 0:
+        return positive_counts + 1, negative_counts, zero_counts
+    elif iid_effect < 0:
+        return positive_counts, negative_counts + 1, zero_counts
+    else:
+        return positive_counts, negative_counts, zero_counts + 1
+    
+def save_iid_effects_results_to_file(location: str, all_positive: int, all_negative: int, all_zero: int, included_positive: int, included_negative: int, included_zero: int, phase1_positive: int, phase1_negative: int, phase1_zero: int, output_dir: Path):
+    with open(output_dir / "iid_effect_counts" / f"{location}_iid_effects_counts.txt", "w") as f:
+            f.write(f"Location: {location}\n")
+            f.write(f"All Subjects: {all_positive + all_negative + all_zero}\n")
+            f.write(f"Included Subjects: {included_positive + included_negative + included_zero}\n")
+            f.write(f"Phase 1 Explicit Knowledge: {phase1_positive + phase1_negative + phase1_zero}\n")
+            f.write("-" * 50 + "\n")
+            f.write("All Subjects:\n")
+            f.write(f"Positive IID effects: {all_positive}\n")
+            f.write(f"Negative IID effects: {all_negative}\n")
+            f.write(f"Zero IID effects: {all_zero}\n")
+            f.write("-" * 50 + "\n")
+            f.write("Included Subjects:\n")
+            f.write(f"Positive IID effects: {included_positive}\n")
+            f.write(f"Negative IID effects: {included_negative}\n")
+            f.write(f"Zero IID effects: {included_zero}\n")
+            f.write("-" * 50 + "\n")
+            if location in PHASE1_EXPLICIT_KNOWLEDGE:
+                f.write("Phase 1 Explicit Knowledge:\n")
+                f.write(f"Positive IID effects: {phase1_positive}\n")
+                f.write(f"Negative IID effects: {phase1_negative}\n")
+                f.write(f"Zero IID effects: {phase1_zero}\n")
+                f.write("-" * 50 + "\n")
+
+def analyze_iid_effects_by_site(data_dir: Path, excluded_subjects: Dict[str, List[Dict]] = None, output_dir: Path = None):
+    """
+    Analyze IID effects by site, counting subjects with positive and negative effects.
+    Prints results for both all subjects and included subjects.
+
+    Args:
+        data_dir: Path to data directory
+        excluded_subjects: Dictionary of excluded subjects by location
+    """
+    if excluded_subjects is None:
+        excluded_subjects = {}
+
+    for location_dir in data_dir.iterdir():
+        if not location_dir.is_dir() or location_dir.name.startswith("."):
+            continue
+
+        location = location_dir.name
+        excluded_ids = {subj["subject_id"] for subj in excluded_subjects.get(location, [])}
+
+        # Initialize counters for all subjects
+        all_positive, all_negative, all_zero = 0, 0, 0
+        # Initialize counters for included subjects
+        included_positive, included_negative, included_zero = 0, 0, 0
+
+        # Initialize counters for phase 1 explicit knowledge subjects
+        phase1_positive, phase1_negative, phase1_zero = 0, 0, 0
+
+        # Process each subject's data
+        for csv_file in location_dir.glob("*.csv"):
+            subject_id = csv_file.stem
+            try:
+                df = pd.read_csv(csv_file)
+                iid_effect, _, _ = process_phase3_data(df)
+                
+                if not np.isnan(iid_effect):
+                    # Count for all subjects
+                    all_positive, all_negative, all_zero = find_devaluation_counts(all_positive, all_negative, all_zero, iid_effect)
+                    
+                    # Count for included subjects
+                    if subject_id not in excluded_ids:
+                        included_positive, included_negative, included_zero = find_devaluation_counts(included_positive, included_negative, included_zero, iid_effect)
+                    
+                    if location in PHASE1_EXPLICIT_KNOWLEDGE:   
+                        if subject_id in PHASE1_EXPLICIT_KNOWLEDGE[location]:
+                            phase1_positive, phase1_negative, phase1_zero = find_devaluation_counts(phase1_positive, phase1_negative, phase1_zero, iid_effect)
+
+            except Exception as e:
+                print(f"Error processing {csv_file}: {str(e)}")
+
+        save_iid_effects_results_to_file(location, all_positive, all_negative, all_zero, included_positive, included_negative, included_zero, phase1_positive, phase1_negative, phase1_zero, output_dir)
+
+def run_standard_analyses(
+    df: pd.DataFrame,
+    location: str,
+    subject_type: str,
+    figure_dir: Path,
+    output_dir: Path,
+    jasp_dir: Path,
+) -> pd.DataFrame:
+    """Runs the standard set of analyses and saves outputs for a given dataset.
+
+    Args:
+        df: DataFrame containing the data to analyze.
+        location: Location identifier (e.g., 'UNC', 'combined').
+        subject_type: Type of subjects ('all', 'included', 'phase1').
+        figure_dir: Path to the directory for saving figures.
+        output_dir: Path to the directory for saving ANOVA/Equivalence results.
+        jasp_dir: Path to the directory for saving JASP files.
+
+    Returns:
+        DataFrame containing the results of the equivalence test.
+    """
+    # Create devaluation figure
+    create_devaluation_figure(df, location, subject_type, figure_dir)
+
+    # Perform RM ANOVA
+    perform_rm_anova(df, location, subject_type, output_dir)
+
+    # Perform equivalence testing
+    equiv_results = perform_equivalence_testing(df, location, subject_type)
+
+    # Convert to JASP format and save
+    jasp_df = convert_to_jasp_format(df, location, subject_type)
+    jasp_df.to_csv(jasp_dir / f"{location}_{subject_type}_jasp.csv", index=False)
+
+    return equiv_results

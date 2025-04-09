@@ -1,0 +1,15 @@
+Location: DR1
+All Subjects: 31
+Included Subjects: 22
+Phase 1 Explicit Knowledge: 0
+--------------------------------------------------
+All Subjects:
+Positive IID effects: 15
+Negative IID effects: 16
+Zero IID effects: 0
+--------------------------------------------------
+Included Subjects:
+Positive IID effects: 11
+Negative IID effects: 11
+Zero IID effects: 0
+--------------------------------------------------

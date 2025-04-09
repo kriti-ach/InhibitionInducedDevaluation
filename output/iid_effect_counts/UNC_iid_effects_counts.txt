@@ -1,0 +1,20 @@
+Location: UNC
+All Subjects: 161
+Included Subjects: 87
+Phase 1 Explicit Knowledge: 26
+--------------------------------------------------
+All Subjects:
+Positive IID effects: 78
+Negative IID effects: 77
+Zero IID effects: 6
+--------------------------------------------------
+Included Subjects:
+Positive IID effects: 43
+Negative IID effects: 41
+Zero IID effects: 3
+--------------------------------------------------
+Phase 1 Explicit Knowledge:
+Positive IID effects: 15
+Negative IID effects: 10
+Zero IID effects: 1
+--------------------------------------------------
