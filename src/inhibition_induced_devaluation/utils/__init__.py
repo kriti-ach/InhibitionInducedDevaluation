@@ -5,7 +5,6 @@ from .utils import (
     get_data_locations,
     get_project_root,
     load_all_locations_data,
-    load_csv_files,
     load_location_data,
 )
 
@@ -15,5 +14,4 @@ __all__ = [
     'get_data_locations',
     'load_location_data',
     'load_all_locations_data',
-    'load_csv_files',
 ]

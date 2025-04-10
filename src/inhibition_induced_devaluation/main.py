@@ -1,14 +1,15 @@
-import pandas as pd
 from pathlib import Path
 
+import pandas as pd
+
 from inhibition_induced_devaluation.utils.utils import (
+    analyze_iid_effects_by_site,
     combine_location_data,
     create_figure2,
     create_stopping_results_table,
     get_both_exclusions,
     get_iqr_exclusions,
     get_processed_data,
-    analyze_iid_effects_by_site,
     run_standard_analyses,
 )
 
@@ -40,7 +41,7 @@ def main():
     # Create Figure 2
     create_figure2(data_dir, figure_dir)
 
-    # Print exclusion summary
+    # Save exclusion summary
     for location, excluded_subjects in behavioral_exclusions.items():
         with open(output_dir / "exclusion_summaries" / f"{location}_exclusion_summary.txt", "a") as f:
             behavioral_count = len(excluded_subjects)
@@ -84,13 +85,13 @@ def main():
     # Process each dataset and create outputs
     for location in behavioral_exclusions.keys():
         print(f"\n--- Processing Location: {location} ---")
-        # --- All Subjects --- 
+        # --- All Subjects ---
         equiv_res = run_standard_analyses(
             all_data[location], location, "all", figure_dir, output_dir, jasp_dir
         )
         all_equiv_results.append(equiv_res)
 
-        # --- Included Subjects --- 
+        # --- Included Subjects ---
         equiv_res = run_standard_analyses(
             included_data[location], location, "included", figure_dir, output_dir, jasp_dir
         )
@@ -126,7 +127,7 @@ def main():
     combined_equiv_results.to_csv(
         equiv_dir / "equivalence_tests_summary.csv", index=False
     )
-    
+
     analyze_iid_effects_by_site(data_dir, all_exclusions, output_dir)
 
     print("\nProcessing complete.")

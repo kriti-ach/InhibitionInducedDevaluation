@@ -8,7 +8,13 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats
 from statsmodels.stats.anova import AnovaRM
-from inhibition_induced_devaluation.utils.globals import NO_RESPONSE, MAX_P_RESPOND, EXPLICIT_KNOWLEDGE_SUBJECTS, PHASE1_EXPLICIT_KNOWLEDGE
+
+from inhibition_induced_devaluation.utils.globals import (
+    EXPLICIT_KNOWLEDGE_SUBJECTS,
+    MAX_P_RESPOND,
+    NO_RESPONSE,
+    PHASE1_EXPLICIT_KNOWLEDGE,
+)
 
 warnings.filterwarnings('ignore')
 
@@ -77,40 +83,25 @@ def load_all_locations_data() -> Dict[str, Dict[str, pd.DataFrame]]:
     return {location: load_location_data(location) for location in locations}
 
 
-# Keep the original function for backward compatibility
-def load_csv_files(subdirectory: str) -> Dict[str, pd.DataFrame]:
-    """
-    Load all CSV files from the data directory or a specific subdirectory.
-
-    Args:
-        subdirectory (str, optional): Name of subdirectory within data folder to search.
-                                    If None, searches the main data directory.
-
-    Returns:
-        Dict[str, pd.DataFrame]: Dictionary with filenames as 
-        keys and pandas DataFrames as values
-    """
-    data_dir = get_data_dir()
-    if subdirectory:
-        data_dir = data_dir / subdirectory
-
-    csv_files = {}
-    for csv_path in data_dir.rglob("*.csv"):
-        try:
-            df = pd.read_csv(csv_path)
-            # Use relative path from data directory as key
-            relative_path = csv_path.relative_to(get_data_dir())
-            csv_files[str(relative_path)] = df
-        except Exception as e:
-            print(f"Error loading {csv_path}: {str(e)}")
-
-    return csv_files
-
-
 def fix_response_accuracy(
     df_p2: pd.DataFrame, location: str, subject_id: str
 ) -> pd.DataFrame:
-    """Fix response and accuracy for specific subjects."""
+    """
+    Fix response and accuracy values for specific subjects with known data issues.
+
+    Args:
+        df_p2: DataFrame containing part 2 data
+        location: Location identifier (e.g., 'Stanford', 'UNC', 'Tel Aviv')
+        subject_id: Subject identifier (e.g., 'S902', 'S4193', 'S221')
+
+    Returns:
+        pd.DataFrame: DataFrame with corrected response and accuracy values
+
+    Notes:
+        Applies specific corrections for:
+        - Stanford S902 and UNC S4193: Fixes quadrant 5 responses and accuracy
+        - Tel Aviv S221: Fixes quadrant 5 and 6 responses and accuracy
+    """
     if (location == "Stanford" and subject_id == "S902") or (
         location == "UNC" and subject_id == "S4193"
     ):
@@ -145,7 +136,19 @@ def fix_response_accuracy(
 def get_trial_types(
     df_p2: pd.DataFrame,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Extract different trial types."""
+    """
+    Extract different trial types from part 2 data.
+
+    Args:
+        df_p2: DataFrame containing part 2 data
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]: A tuple containing:
+            - stop_failure_trials: Trials where stopping failed (accuracy == 3)
+            - no_stop_signal_trials_go_shapes: Trials with shapes never paired with stopping
+            - no_stop_signal_trials_stop_shapes: Go trials with shapes paired with stopping
+            - no_stop_signal_trials_all_shapes: All go trials regardless of shape type
+    """
     stop_failure_trials = df_p2.loc[df_p2["accuracy"] == 3]
     no_stop_signal_trials_go_shapes = df_p2.loc[
         df_p2["paired_with_stopping"] == 0
@@ -171,7 +174,22 @@ def calculate_mean_rts(
     no_stop_signal_trials_go_shapes: pd.DataFrame,
     no_stop_signal_trials_stop_shapes: pd.DataFrame,
 ) -> Tuple[float, float, float, float]:
-    """Calculate mean reaction times for different trial types."""
+    """
+    Calculate mean reaction times for different trial types.
+
+    Args:
+        stop_failure_trials: Trials where stopping failed
+        no_stop_signal_trials_all_shapes: All go trials regardless of shape type
+        no_stop_signal_trials_go_shapes: Trials with shapes never paired with stopping
+        no_stop_signal_trials_stop_shapes: Go trials with shapes paired with stopping
+
+    Returns:
+        Tuple[float, float, float, float]: A tuple containing:
+            - p2_go_RT: Mean RT for all go trials
+            - p2_stopfail_RT: Mean RT for stop failure trials
+            - p2_goRT_go_shapes: Mean RT for trials with shapes never paired with stopping
+            - p2_goRT_stop_shapes: Mean RT for go trials with shapes paired with stopping
+    """
     return (
         no_stop_signal_trials_all_shapes["reaction_time"].mean(),  # p2_go_RT
         stop_failure_trials["reaction_time"].mean(),  # p2_stopfail_RT
@@ -402,10 +420,6 @@ def get_iqr_exclusions(
         subject_data = {}
         csv_files = sorted(list(location_dir.glob("*.csv")))
 
-        if not csv_files:
-            print(f"No CSV files found in {location_dir}")
-            continue
-
         # First pass: collect IID effects only for non-excluded subjects
         for csv_file in csv_files:
             subject_id = csv_file.stem
@@ -457,9 +471,6 @@ def add_explicit_knowledge_exclusions(
     Returns:
         Updated list of exclusions including explicit knowledge
     """
-    if location not in EXPLICIT_KNOWLEDGE_SUBJECTS:
-        return behavioral_exclusions
-
     # Convert behavioral exclusions to a dict for easy lookup
     excluded_subjects = {exc["subject_id"]: exc for exc in behavioral_exclusions}
 
@@ -521,7 +532,16 @@ def get_behavioral_exclusions(file_path: Path, dataset_collection_place: str) ->
         return {}
 
 def save_exclusion_summary(location: str, location_behavioral_reasons: Dict[str, int], location_explicit_knowledge: int, location_both: int, output_dir: Path):
-    """Save exclusion summary for a location."""
+    """
+    Save exclusion summary for a location to a text file.
+
+    Args:
+        location: Location identifier
+        location_behavioral_reasons: Dictionary mapping behavioral exclusion reasons to counts
+        location_explicit_knowledge: Count of subjects excluded for explicit knowledge only
+        location_both: Count of subjects excluded for both behavioral and explicit knowledge reasons
+        output_dir: Path to the output directory where the file will be saved
+    """
     with open(output_dir / f"{location}_exclusion_summary.txt", "w") as f:
         f.write(f"Exclusions for {location}\n")
         f.write("=" * 50 + "\n")
@@ -584,7 +604,7 @@ def get_both_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
             location_exclusions = add_explicit_knowledge_exclusions(
                 location_dir.name, location_exclusions
             )
-            
+
             # Count explicit knowledge and both for this location
             for exc in location_exclusions:
                 if exc["reason"] == "Explicit Knowledge":
@@ -598,58 +618,6 @@ def get_both_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
             exclusions[location_dir.name] = location_exclusions
 
     return exclusions
-
-
-def compute_rm_anova(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Compute repeated measures ANOVA with data aggregation.
-    Args:
-        df: DataFrame with columns SUBJECT, STOP_CONDITION, VALUE_LEVEL, BIDDING_LEVEL
-    Returns:
-        AnovaResults object with the analysis results
-    """
-    # Ensure categorical variables
-    df["STOP_CONDITION"] = df["STOP_CONDITION"].astype("category")
-    df["VALUE_LEVEL"] = df["VALUE_LEVEL"].astype("category")
-
-    # Aggregate data by taking the mean for each subject/condition combination
-    df_agg = (
-        df.groupby(["SUBJECT", "STOP_CONDITION", "VALUE_LEVEL"],
-                  observed=True)["BIDDING_LEVEL"]
-        .mean()
-        .reset_index()
-    )
-
-    # Perform repeated measures ANOVA
-    return AnovaRM(
-        data=df_agg,
-        depvar="BIDDING_LEVEL",
-        subject="SUBJECT",
-        within=["STOP_CONDITION", "VALUE_LEVEL"],
-    ).fit()
-
-def save_rm_anova_results(
-    anova_results: pd.DataFrame,
-    location: str,
-    subject_type: str,
-    output_dir: Path
-) -> None:
-    """Save ANOVA results to file."""
-    anova_dir = output_dir / "anovas"
-    anova_dir.mkdir(parents=True, exist_ok=True)
-
-    output_file = anova_dir / f"{location}_{subject_type}_rm_anova_results.txt"
-    with open(output_file, "w") as f:
-        f.write(f"Repeated Measures ANOVA Results for {location} - {subject_type} subjects\n")
-        f.write("=" * 80 + "\n\n")
-        f.write(str(anova_results))
-
-def calculate_mean_bids(stop_shapes: pd.DataFrame,
-                       go_shapes: pd.DataFrame) -> Tuple[float, float]:
-    """Calculate mean bidding levels."""
-    stop_bid = stop_shapes["chosen_bidding_level"].mean()
-    go_bid = go_shapes["chosen_bidding_level"].mean()
-    return stop_bid, go_bid
 
 def process_subject_data(file_path: Path, location: str) -> pd.DataFrame:
     """
@@ -683,71 +651,22 @@ def process_subject_data(file_path: Path, location: str) -> pd.DataFrame:
 
     return df_agg[["SUBJECT", "VALUE_LEVEL", "STOP_CONDITION", "BIDDING_LEVEL"]]
 
-def compute_equivalence_test(
-    df: pd.DataFrame,
-    equivalence_margin: float = 0.5
-) -> dict:
+def calculate_mean_bids(stop_shapes: pd.DataFrame, go_shapes: pd.DataFrame) -> Tuple[float, float]:
     """
-    Compute equivalence testing statistics.
+    Calculate mean bidding levels for stop and go shapes.
+
     Args:
-        df: DataFrame with columns SUBJECT, STOP_CONDITION, BIDDING_LEVEL
-        equivalence_margin: Margin for equivalence testing
+        stop_shapes: DataFrame containing data for shapes paired with stopping
+        go_shapes: DataFrame containing data for shapes not paired with stopping
+
     Returns:
-        Dictionary containing test results
+        Tuple[float, float]: A tuple containing (stop_bid, go_bid) where:
+            - stop_bid: Mean bidding level for shapes paired with stopping
+            - go_bid: Mean bidding level for shapes not paired with stopping
     """
-    # Ensure STOP_CONDITION is categorical
-    df["STOP_CONDITION"] = df["STOP_CONDITION"].astype("category")
-
-    # Aggregate and pivot
-    aggregated_df = df.groupby(["SUBJECT", "STOP_CONDITION"],
-                             observed=True)["BIDDING_LEVEL"].mean().reset_index()
-    paired_df = aggregated_df.pivot(index="SUBJECT",
-                                  columns="STOP_CONDITION",
-                                  values="BIDDING_LEVEL").dropna()
-
-    stop_group = paired_df["Stop"]
-    no_stop_group = paired_df["No Stop"]
-
-    # Calculate statistics
-    diff = no_stop_group - stop_group
-    n = len(diff)
-    mean_diff = np.mean(diff)
-    sd_diff = np.std(diff, ddof=1)
-
-    # Calculate t-statistics
-    t_lower = (mean_diff + equivalence_margin) / (sd_diff / np.sqrt(n))
-    t_upper = (mean_diff - equivalence_margin) / (sd_diff / np.sqrt(n))
-
-    # Calculate p-values
-    p_lower = 1 - stats.t.cdf(t_lower, df=n-1)
-    p_upper = stats.t.cdf(t_upper, df=n-1)
-
-    return {
-        "N": n,
-        "Mean_Difference": mean_diff,
-        "SD_Difference": sd_diff,
-        "Equivalence_Margin": equivalence_margin,
-        "TOST_lower_p": p_lower,
-        "TOST_upper_p": p_upper,
-        "Equivalent": p_lower < 0.05 and p_upper < 0.05
-    }
-
-def save_equivalence_test_results(
-    test_results: dict,
-    location: str,
-    subject_type: str,
-    output_dir: Path
-) -> None:
-    """Save equivalence test results to file."""
-    equiv_dir = output_dir / "equivalence_tests"
-    equiv_dir.mkdir(parents=True, exist_ok=True)
-
-    output_file = equiv_dir / f"{location}_{subject_type}_equivalence_test.txt"
-    with open(output_file, "w") as f:
-        f.write(f"Equivalence Test Results for {location} - {subject_type} subjects\n")
-        f.write("=" * 80 + "\n\n")
-        for key, value in test_results.items():
-            f.write(f"{key}: {value}\n")
+    stop_bid = stop_shapes["chosen_bidding_level"].mean()
+    go_bid = go_shapes["chosen_bidding_level"].mean()
+    return stop_bid, go_bid
 
 # Split process_phase3_data into smaller functions
 def get_phase3_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -759,13 +678,6 @@ def separate_shape_types(df_p3: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFram
     stop_shapes = df_p3[df_p3["paired_with_stopping"] == 1]
     go_shapes = df_p3[df_p3["paired_with_stopping"] == 0]
     return stop_shapes, go_shapes
-
-def calculate_mean_bids(stop_shapes: pd.DataFrame, 
-                        go_shapes: pd.DataFrame) -> Tuple[float, float]:
-    """Calculate mean bidding levels."""
-    stop_bid = stop_shapes["chosen_bidding_level"].mean()
-    go_bid = go_shapes["chosen_bidding_level"].mean()
-    return stop_bid, go_bid
 
 def calculate_iid_effect(stop_bid: float, go_bid: float) -> float:
     """Calculate IID effect."""
@@ -1143,7 +1055,17 @@ def create_stopping_results_table(
 
 def create_figure2(data_dir: Path, figure_dir: Path):
     """
-    Create stripplot of IID effects by location with individual subject points and confidence intervals.
+    Create a stripplot visualization of IID effects by location with individual subject points and confidence intervals.
+
+    Args:
+        data_dir: Path to the data directory containing subject data files
+        figure_dir: Path to the directory where the figure will be saved
+
+    The figure shows:
+    - Individual subject points (gray dots)
+    - Mean IID effect per location (black diamonds)
+    - Standard error bars for each location
+    - Jittered points to avoid overlap
     """
     # Prepare data for plotting
     plot_data = []
@@ -1200,16 +1122,40 @@ def create_figure2(data_dir: Path, figure_dir: Path):
 
 def find_devaluation_counts(positive_counts: float, negative_counts: float, zero_counts: float, iid_effect: float) -> Tuple[int, int, int]:
     """
-    Find the counts of positive, negative, and zero IID effects.
+    Update counts of positive, negative, and zero IID effects based on a new IID effect value.
+
+    Args:
+        positive_counts: Current count of positive IID effects
+        negative_counts: Current count of negative IID effects
+        zero_counts: Current count of zero IID effects
+        iid_effect: New IID effect value to categorize
+
+    Returns:
+        Tuple[int, int, int]: Updated counts as (positive_counts, negative_counts, zero_counts)
     """
     if iid_effect > 0:
         return positive_counts + 1, negative_counts, zero_counts
-    elif iid_effect < 0:
+    if iid_effect < 0:
         return positive_counts, negative_counts + 1, zero_counts
-    else:
-        return positive_counts, negative_counts, zero_counts + 1
-    
+    return positive_counts, negative_counts, zero_counts + 1
+
 def save_iid_effects_results_to_file(location: str, all_positive: int, all_negative: int, all_zero: int, included_positive: int, included_negative: int, included_zero: int, phase1_positive: int, phase1_negative: int, phase1_zero: int, output_dir: Path):
+    """
+    Save IID effect counts to a text file for a specific location.
+
+    Args:
+        location: Location identifier
+        all_positive: Count of positive IID effects for all subjects
+        all_negative: Count of negative IID effects for all subjects
+        all_zero: Count of zero IID effects for all subjects
+        included_positive: Count of positive IID effects for included subjects
+        included_negative: Count of negative IID effects for included subjects
+        included_zero: Count of zero IID effects for included subjects
+        phase1_positive: Count of positive IID effects for phase 1 explicit knowledge subjects
+        phase1_negative: Count of negative IID effects for phase 1 explicit knowledge subjects
+        phase1_zero: Count of zero IID effects for phase 1 explicit knowledge subjects
+        output_dir: Path to the output directory where the file will be saved
+    """
     with open(output_dir / "iid_effect_counts" / f"{location}_iid_effects_counts.txt", "w") as f:
             f.write(f"Location: {location}\n")
             f.write(f"All Subjects: {all_positive + all_negative + all_zero}\n")
@@ -1266,16 +1212,16 @@ def analyze_iid_effects_by_site(data_dir: Path, excluded_subjects: Dict[str, Lis
             try:
                 df = pd.read_csv(csv_file)
                 iid_effect, _, _ = process_phase3_data(df)
-                
+
                 if not np.isnan(iid_effect):
                     # Count for all subjects
                     all_positive, all_negative, all_zero = find_devaluation_counts(all_positive, all_negative, all_zero, iid_effect)
-                    
+
                     # Count for included subjects
                     if subject_id not in excluded_ids:
                         included_positive, included_negative, included_zero = find_devaluation_counts(included_positive, included_negative, included_zero, iid_effect)
-                    
-                    if location in PHASE1_EXPLICIT_KNOWLEDGE:   
+
+                    if location in PHASE1_EXPLICIT_KNOWLEDGE:
                         if subject_id in PHASE1_EXPLICIT_KNOWLEDGE[location]:
                             phase1_positive, phase1_negative, phase1_zero = find_devaluation_counts(phase1_positive, phase1_negative, phase1_zero, iid_effect)
 
