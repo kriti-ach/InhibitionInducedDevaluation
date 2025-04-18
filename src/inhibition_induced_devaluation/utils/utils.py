@@ -90,7 +90,7 @@ def fix_response_accuracy(
     Fix response and accuracy values for specific subjects with known data issues.
 
     Args:
-        df_p2: DataFrame containing part 2 data
+        df_p2: DataFrame containing phase 2 data
         location: Location identifier (e.g., 'Stanford', 'UNC', 'Tel Aviv')
         subject_id: Subject identifier (e.g., 'S902', 'S4193', 'S221')
 
@@ -99,33 +99,33 @@ def fix_response_accuracy(
 
     Notes:
         Applies specific corrections for:
-        - Stanford S902 and UNC S4193: Fixes quadrant 5 responses and accuracy
-        - Tel Aviv S221: Fixes quadrant 5 and 6 responses and accuracy
+        - Stanford S902 and UNC S4193: Fixes stim_location 5 responses and accuracy
+        - Tel Aviv S221: Fixes stim_location 5 and 6 responses and accuracy
     """
     if (location == "Stanford" and subject_id == "S902") or (
         location == "UNC" and subject_id == "S4193"
     ):
-        condition = (df_p2["quadrant"] == 5) & (df_p2["response"] == 1)
+        condition = (df_p2["stim_location"] == 5) & (df_p2["response"] == 1)
         df_p2.loc[condition, "response"] = 5
         condition2 = (
-            (df_p2["quadrant"] == 5)
+            (df_p2["stim_location"] == 5)
             & (df_p2["response"] == 5)
             & (df_p2["accuracy"] == 2)
         )
         df_p2.loc[condition2, "accuracy"] = 1
     elif location == "Tel Aviv" and subject_id == "S221":
-        condition = (df_p2["quadrant"] == 5) & (df_p2["response"] == 1)
+        condition = (df_p2["stim_location"] == 5) & (df_p2["response"] == 1)
         df_p2.loc[condition, "response"] = 5
         condition2 = (
-            (df_p2["quadrant"] == 5)
+            (df_p2["stim_location"] == 5)
             & (df_p2["response"] == 5)
             & (df_p2["accuracy"] == 2)
         )
         df_p2.loc[condition2, "accuracy"] = 1
-        condition3 = (df_p2["quadrant"] == 6) & (df_p2["response"] == 2)
+        condition3 = (df_p2["stim_location"] == 6) & (df_p2["response"] == 2)
         df_p2.loc[condition3, "response"] = 6
         condition4 = (
-            (df_p2["quadrant"] == 6)
+            (df_p2["stim_location"] == 6)
             & (df_p2["response"] == 6)
             & (df_p2["accuracy"] == 2)
         )
@@ -137,10 +137,10 @@ def get_trial_types(
     df_p2: pd.DataFrame,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Extract different trial types from part 2 data.
+    Extract different trial types from phase 2 data.
 
     Args:
-        df_p2: DataFrame containing part 2 data
+        df_p2: DataFrame containing phase 2 data
 
     Returns:
         Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]: A tuple containing:
@@ -254,10 +254,10 @@ def calculate_avg_ssd(no_stop_signal_trials_stop_shapes: pd.DataFrame) -> float:
         float: Average stop signal delay
     """
     rank_left_trials = no_stop_signal_trials_stop_shapes.loc[
-        no_stop_signal_trials_stop_shapes["quadrant"] == 5
+        no_stop_signal_trials_stop_shapes["stim_location"] == 5
     ]
     rank_right_trials = no_stop_signal_trials_stop_shapes.loc[
-        no_stop_signal_trials_stop_shapes["quadrant"] == 6
+        no_stop_signal_trials_stop_shapes["stim_location"] == 6
     ]
 
     return (
@@ -286,7 +286,7 @@ def calculate_ssrt_components(
     """
     Calculate SSRT and probability of stopping.
     Args:
-        df_p2: DataFrame containing part 2 data
+        df_p2: DataFrame containing phase 2 data
         no_stop_signal_trials_stop_shapes: DataFrame of no-stop signal 
         trials for stop shapes
     Returns:
@@ -324,7 +324,7 @@ def process_stop_signal_data(
     - p2_prob_stop
     """
     # Filter for part 2 only
-    df_p2 = df[df["which_part"] == "part_2"].copy()
+    df_p2 = df[df["which_phase"] == "phase_2"].copy()
 
     # Fix response and accuracy for specific subjects
     df_p2 = fix_response_accuracy(df_p2, location, subject_id)
@@ -634,8 +634,6 @@ def process_subject_data(file_path: Path, location: str) -> pd.DataFrame:
 
     df["BIDDING_LEVEL"] = df["chosen_bidding_level"]
     value_level_mapping = {1: "L", 2: "LM", 3: "HM", 4: "H"}
-    if location == "DR1":
-        value_level_mapping = {0.5: "L", 1: "LM", 2: "HM", 4: "H"}
 
     df["VALUE_LEVEL"] = df["stepwise_reward_magnitude"].map(value_level_mapping)
     df["SUBJECT"] = subject_id
@@ -671,7 +669,7 @@ def calculate_mean_bids(stop_shapes: pd.DataFrame, go_shapes: pd.DataFrame) -> T
 # Split process_phase3_data into smaller functions
 def get_phase3_data(df: pd.DataFrame) -> pd.DataFrame:
     """Extract phase 3 data from DataFrame."""
-    return df[df["which_part"] == "part_3"].copy()
+    return df[df["which_phase"] == "phase_3"].copy()
 
 def separate_shape_types(df_p3: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Separate stop and go shapes."""
@@ -692,7 +690,7 @@ def process_phase3_data(df: pd.DataFrame) -> Tuple[float, float, float]:
     Returns:
         Tuple containing (iid_effect, stop_bid, go_bid)
     """
-    df_p3 = df[df["which_part"] == "part_3"].copy()
+    df_p3 = df[df["which_phase"] == "phase_3"].copy()
 
     stop_shapes, go_shapes = separate_shape_types(df_p3)
     stop_bid, go_bid = calculate_mean_bids(stop_shapes, go_shapes)

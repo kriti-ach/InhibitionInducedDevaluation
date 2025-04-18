@@ -11,14 +11,14 @@ from inhibition_induced_devaluation.utils.utils import (
 def test_get_phase3_data():
     """Test extraction of phase 3 data"""
     data = {
-        'which_part': ['part_1', 'part_2', 'part_3', 'part_3'],
+        'which_phase': ['phase_1', 'phase_2', 'phase_3', 'phase_3'],
         'value': [1, 2, 3, 4]
     }
     df = pd.DataFrame(data)
 
     phase3_df = get_phase3_data(df)
     assert len(phase3_df) == 2
-    assert all(phase3_df['which_part'] == 'part_3')
+    assert all(phase3_df['which_phase'] == 'phase_3')
 
 def test_separate_shape_types():
     """Test separation of stop and go shapes"""

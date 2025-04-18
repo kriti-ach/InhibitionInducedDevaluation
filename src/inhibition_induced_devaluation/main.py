@@ -29,7 +29,6 @@ def main():
 
     # Get behavioral exclusions
     behavioral_exclusions = get_both_exclusions(data_dir)
-
     # Get IQR-based exclusions
     iqr_exclusions = get_iqr_exclusions(
         data_dir,

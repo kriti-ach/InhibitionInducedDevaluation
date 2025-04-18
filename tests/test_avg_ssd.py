@@ -7,7 +7,7 @@ from inhibition_induced_devaluation.utils.utils import calculate_avg_ssd
 def test_calculate_avg_ssd_basic():
     """Test average SSD calculation with simple values"""
     data = {
-        'quadrant': [5, 5, 6, 6],
+        'stim_location': [5, 5, 6, 6],
         'left_SSD': [100, 200, np.nan, np.nan],
         'right_SSD': [np.nan, np.nan, 300, 400]
     }
@@ -19,7 +19,7 @@ def test_calculate_avg_ssd_basic():
 def test_calculate_avg_ssd_single_side():
     """Test when only one side has data"""
     data = {
-        'quadrant': [5, 5],
+        'stim_location': [5, 5],
         'left_SSD': [100, 200],
         'right_SSD': [np.nan, np.nan]
     }
@@ -31,7 +31,7 @@ def test_calculate_avg_ssd_single_side():
 def test_calculate_avg_ssd_empty():
     """Test with empty DataFrame"""
     df = pd.DataFrame({
-        'quadrant': [],
+        'stim_location': [],
         'left_SSD': [],
         'right_SSD': []
     })
@@ -39,10 +39,10 @@ def test_calculate_avg_ssd_empty():
     avg_ssd = calculate_avg_ssd(df)
     assert np.isnan(avg_ssd)
 
-def test_calculate_avg_ssd_no_matching_quadrants():
-    """Test when no trials match the quadrant criteria"""
+def test_calculate_avg_ssd_no_matching_stim_locations():
+    """Test when no trials match the stim_location criteria"""
     data = {
-        'quadrant': [1, 2, 3, 4],
+        'stim_location': [1, 2, 3, 4],
         'left_SSD': [100, 200, 300, 400],
         'right_SSD': [100, 200, 300, 400]
     }

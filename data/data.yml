@@ -1,31 +1,33 @@
 columns: 
   - raw_reward_magnitude:
-    Description: The raw reward magnitude of each stimulus shown in phase 1. This data was not available for DR1.
+    Description: The raw reward magnitude of each stimulus, shown in phase 1. The units are cents
+    for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
     Type: float
     Example: "0.0"
   - stim_reward:
     Description: The reward magnitude of each color-shape stimulus pairing 
-    (1 and 5 = low; 2 and 6 = mid low; 3 and 7 = mid high; 4 and 8 = high). This data was not available for DR1.
+    (1 and 5 = low (between 25-75 cents/137-187 Agorot); 2 and 6 = mid low (between 75-125 cents/300-350 Agorot); 
+    3 and 7 = mid high (between 175-225 cents/625-675 Agorot); 4 and 8 = high (between 375-425 cents/1275-1325 Agorot)). 
     Type: float
     Example: "1.0"
   - stepwise_reward_magnitude:
-    Description: The stepwise reward magnitude of each color-shape stimulus pairing ranging from 0-4. For example, stimuli with a 
-    stim_reward of 1 or 5 will have a stepwise_reward_magnitude of 1. All stimuli can have some trials with a 
-    stepwise_reward_magnitude of 0. For DR1, these values were 0.5, 1, 2, and 4, where a value of 0.5 means the stimulus
-    has lesser reward magnitude and a value of 4 means the stimuli has greater reward magnitude. 
+    Description: The stepwise reward magnitude of each color-shape stimulus pairing ranging from 0-4. All stimuli can have some trials with a 
+    stepwise_reward_magnitude of 0. 
+    (0 = 0; 1 = low (between 25-75 cents/137-187 Agorot); 2 = mid low (between 75-125 cents/300-350 Agorot); 
+    3 = mid high (between 175-225 cents/625-675 Agorot); 4 = high (between 375-425 cents/1275-1325 Agorot)). 
     Type: float
     Example: "0.0"
   - paired_with_stopping:
-    Description: Whether the stimulus is paired with stopping in phase 2.
+    Description: Whether the stimulus is paired with stopping in phase 2. (1 = paired with stopping, 0 = not paired with stopping)
     Type: float
     Example: "0.0"
-  - quadrant:
-    Description: The quadrant that the stimulus is shown in. In phase 1, 1 = top L; 2 = top R; 3 = bottom R; 4 = bottom L. 
-    In phase 2, 5 = L; 6 = R. In phase 3, the quadrant is always 7.
+  - stim_location:
+    Description: The location of the stimulus. In phase 1, 1 = top L; 2 = top R; 3 = bottom R; 4 = bottom L. 
+    In phase 2, 5 = L; 6 = R. In phase 3, the location is always 7.
     Type: float
     Example: "1.0"
   - response:
-    Description: The subject's response. In phase 1, 1 = top L; 2 = top R; 3 = bottom R; 4 = bottom L. In phase 2, 5 = L; 6 = R.
+    Description: The subject's response. In phase 1, 1 = top L; 2 = top R; 3 = bottom R; 4 = bottom L. In phase 2, 0 = No response;5 = L; 6 = R.
     In phase 3, the responses range from 1-6 where 1 is the leftmost bidding value and 6 is the rightmost bidding value.
     Type: float
     Example: "1.0"
@@ -34,13 +36,14 @@ columns:
     Type: float
     Example: "369.7879840619860"
   - block:
-    Description: The current block in a given phase of the experiment. Phase 1 has 3 blocks, Phase 2 has 8 blocks, 
+    Description: The current block in a given phase of the experiment. Phase 1 has 4 blocks, Phase 2 has 8 blocks, 
     and Phase 3 has 4 blocks.
     Type: float
     Example: "1.0"
   - num_trial_presentations:
-    Description: The number of times a given trial is replayed. In phase 1 and 3, trials are replayed if the subject 
-    chooses the incorrect response/misses the trial. This data was not available for DR1.
+    Description: The number of times a given trial is presented. In phase 1 and 3, trials are repeated if the subject 
+    chooses the incorrect response/omits a response. This data was not available for DR1.
+    (1 = 1 presentation; 2 = 2 presentations; 3 = 3 presentations; 4 = 4 presentations)
     Type: float
     Example: "1.0"
   - which_part:
@@ -48,7 +51,7 @@ columns:
     Type: String
     Example: ""part_ 1""
   - stop_signal_trial_type:
-    Description: Whether the trial is a go or stop trial
+    Description: For phase 2 only, whether the trial is a go or stop trial.
     Type: String
     Example: ""go""
   - left_SSD:
@@ -62,11 +65,12 @@ columns:
     Type: float
     Example: "250.0"
   - accuracy:
-    Description: Accuracy in Phase 2. (1 = Correct; 2 = Error; 3 = Failed stop; 4 = Successful stop; 5 = Miss)
+    Description: Accuracy in Phase 2. (1 = Correct; 2 = Choice error; 3 = Failed stop; 4 = Successful stop; 5 = Omission)
     Type: float
     Example: ""go""
   - chosen_bidding_amount:
-    Description: In Phase 3, the bidding option chosen by the participant
+    Description: In Phase 3, the bidding option chosen by the participant. The units are cents
+    for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - chosen_bidding_level:
@@ -75,27 +79,27 @@ columns:
     Type: float
     Example: "1.0"
   - possible_bid_1:
-    Description: The first bidding option provided.
+    Description: The first bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - possible_bid_2:
-    Description: The second bidding option provided.
+    Description: The second bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - possible_bid_3:
-    Description: The third bidding option provided.
+    Description: The third bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - possible_bid_4:
-    Description: The fourth bidding option provided.
+    Description: The fourth bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - possible_bid_5:
-    Description: The fifth bidding option provided.
+    Description: The fifth bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - possible_bid_6:
-    Description: The sixth bidding option provided.
+    Description: The sixth bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - color_text:

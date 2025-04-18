@@ -24,13 +24,13 @@ source setup_env.sh
 ## Repository Structure
 
 - /data:  
-    - Contains .csv data files organized by collectoion location. Also contains a .yml file to describe the structure of the files.
+    - Contains .csv data files organized by collection location. Also contains a .yml file to describe the structure of the files.
 - /figures:  
     - Contains the figures in the paper. 
 - /src:    
     - /inhibition_induced_devaluation:
         * [main.py]: Script to run the preprocessing and analysis using the utility functions. 
-        -/utils: 
+        - /utils: 
             * [utils.py]: Helper functions to condense `main.py` notebooks.  
 - /tables:  
     - Contains the tables in the paper.
