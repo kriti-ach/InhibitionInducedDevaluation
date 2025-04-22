@@ -1,7 +1,0 @@
-Stanford,All,Subset
-Go RT (ms),589,576
-Go RT Stop shapes (ms),618,590
-Go RT Non-Stop Shapes (ms),581,572
-Stop-Failure RT (ms),495,469
-p(resp|signal),0.46,0.47
-SSRT (ms),175,191

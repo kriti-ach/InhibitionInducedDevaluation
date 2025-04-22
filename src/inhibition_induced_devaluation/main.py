@@ -5,8 +5,8 @@ import pandas as pd
 from inhibition_induced_devaluation.utils.utils import (
     analyze_iid_effects_by_site,
     combine_location_data,
-    create_figure2,
-    create_stopping_results_table,
+    create_figure2_and_s2,
+    create_stopping_results_tables,
     get_both_exclusions,
     get_iqr_exclusions,
     get_processed_data,
@@ -38,7 +38,7 @@ def main():
         },
     )
     # Create Figure 2
-    create_figure2(data_dir, figure_dir)
+    create_figure2_and_s2(data_dir, figure_dir)
 
     # Save exclusion summary
     for location, excluded_subjects in behavioral_exclusions.items():
@@ -63,21 +63,8 @@ def main():
     )
     phase1_data = get_processed_data(data_dir, subject_filter="phase1_explicit")
 
-    # Create stopping results tables for each location
-    for location in behavioral_exclusions.keys():
-        # Get list of all excluded subjects for this location
-        excluded_subject_ids = [
-            subj["subject_id"] for subj in behavioral_exclusions[location]
-        ] + [subj["subject_id"] for subj in iqr_exclusions.get(location, [])]
-
-        # Create and save stopping results table
-        stopping_table = create_stopping_results_table(
-            data_dir, location, excluded_subject_ids
-        )
-        stopping_table.to_csv(
-            table_dir / f"{location}_stopping_results.csv", index=False
-        )
-
+    # Create stopping results tables 
+    create_stopping_results_tables(data_dir, table_dir, all_exclusions)
     # Store all equivalence results
     all_equiv_results = []
 

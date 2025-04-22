@@ -1,20 +1,21 @@
 columns: 
   - raw_reward_magnitude:
     Description: The raw reward magnitude of each stimulus, shown in phase 1. The units are cents
-    for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
+    for Stanford, UNC, DR1, DR2, and agorot for Tel Aviv.
     Type: float
     Example: "0.0"
   - stim_reward:
     Description: The reward magnitude of each color-shape stimulus pairing 
-    (1 and 5 = low (between 25-75 cents/137-187 Agorot); 2 and 6 = mid low (between 75-125 cents/300-350 Agorot); 
-    3 and 7 = mid high (between 175-225 cents/625-675 Agorot); 4 and 8 = high (between 375-425 cents/1275-1325 Agorot)). 
+    (1 and 5 = low (between 25-75 cents/137-187 agorot); 2 and 6 = mid low (between 75-125 cents/300-350 agorot); 
+    3 and 7 = mid high (between 175-225 cents/625-675 agorot); 4 and 8 = high (between 375-425 cents/1275-1325 agorot)). 
     Type: float
     Example: "1.0"
   - stepwise_reward_magnitude:
-    Description: The stepwise reward magnitude of each color-shape stimulus pairing ranging from 0-4. All stimuli can have some trials with a 
-    stepwise_reward_magnitude of 0. 
-    (0 = 0; 1 = low (between 25-75 cents/137-187 Agorot); 2 = mid low (between 75-125 cents/300-350 Agorot); 
-    3 = mid high (between 175-225 cents/625-675 Agorot); 4 = high (between 375-425 cents/1275-1325 Agorot)). 
+    Description: The stepwise reward magnitude of each color-shape stimulus pairing from 0, 0.5, 1, 2, and 4. Each of these four 
+    levels of stepwise reward magnitude are the mean raw reward magnitude for each color-shape pairing. All stimuli have 20% of 
+    trials with a stepwise_reward_magnitude of 0 and these trials are not included in the calculation of the mean.
+    (0 = 0; 0.5 = low (between 25-75 cents/137-187 agorot); 1 = mid low (between 75-125 cents/300-350 agorot); 
+    2 = mid high (between 175-225 cents/625-675 agorot); 4 = high (between 375-425 cents/1275-1325 agorot)). 
     Type: float
     Example: "0.0"
   - paired_with_stopping:
@@ -70,7 +71,7 @@ columns:
     Example: ""go""
   - chosen_bidding_amount:
     Description: In Phase 3, the bidding option chosen by the participant. The units are cents
-    for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
+    for Stanford, UNC, DR1, DR2, and agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - chosen_bidding_level:
@@ -79,27 +80,27 @@ columns:
     Type: float
     Example: "1.0"
   - possible_bid_1:
-    Description: The first bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
+    Description: The first bidding option provided, in cents for Stanford, UNC, DR1, DR2, and agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - possible_bid_2:
-    Description: The second bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
+    Description: The second bidding option provided, in cents for Stanford, UNC, DR1, DR2, and agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - possible_bid_3:
-    Description: The third bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
+    Description: The third bidding option provided, in cents for Stanford, UNC, DR1, DR2, and agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - possible_bid_4:
-    Description: The fourth bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
+    Description: The fourth bidding option provided, in cents for Stanford, UNC, DR1, DR2, and agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - possible_bid_5:
-    Description: The fifth bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
+    Description: The fifth bidding option provided, in cents for Stanford, UNC, DR1, DR2, and agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - possible_bid_6:
-    Description: The sixth bidding option provided, in cents for Stanford, UNC, DR1, DR2, and Agorot for Tel Aviv.
+    Description: The sixth bidding option provided, in cents for Stanford, UNC, DR1, DR2, and agorot for Tel Aviv.
     Type: float
     Example: "34.0"
   - color_text:

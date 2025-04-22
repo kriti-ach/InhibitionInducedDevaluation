@@ -1,7 +1,0 @@
-UNC,All,Subset
-Go RT (ms),580,583
-Go RT Stop shapes (ms),622,600
-Go RT Non-Stop Shapes (ms),569,579
-Stop-Failure RT (ms),490,478
-p(resp|signal),0.46,0.47
-SSRT (ms),185,204

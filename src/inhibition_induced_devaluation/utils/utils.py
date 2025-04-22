@@ -633,7 +633,7 @@ def process_subject_data(file_path: Path, location: str) -> pd.DataFrame:
     subject_id = file_path.stem
 
     df["BIDDING_LEVEL"] = df["chosen_bidding_level"]
-    value_level_mapping = {1: "L", 2: "LM", 3: "HM", 4: "H"}
+    value_level_mapping = {0.5: "L", 1: "LM", 2: "HM", 4: "H"}
 
     df["VALUE_LEVEL"] = df["stepwise_reward_magnitude"].map(value_level_mapping)
     df["SUBJECT"] = subject_id
@@ -827,12 +827,17 @@ def create_devaluation_figure(
     plt.yticks(np.arange(1, 7, 1))
     plt.legend(title="Stop Condition")
 
-    # Create directory if it doesn't exist
-    location_dir = figure_dir / location
-    location_dir.mkdir(parents=True, exist_ok=True)
-
     # Save figure
-    plt.savefig(location_dir / f"{location}_{subject_type}_devaluation_figure.png")
+    if location == "Stanford":
+        plt.savefig(figure_dir / f"figure1a.png")
+    elif location == "Tel Aviv":
+        plt.savefig(figure_dir / f"figure1b.png")
+    elif location == "UNC":
+        plt.savefig(figure_dir / f"figure1c.png")
+    elif location == "DR1":
+        plt.savefig(figure_dir / f"figureS1a.png")
+    elif location == "DR2":
+        plt.savefig(figure_dir / f"figureS1b.png")
     plt.close()
 
 
@@ -986,21 +991,29 @@ def convert_to_jasp_format(
 
 
 def process_subject_files(
-    data_dir: Path, location: str, excluded_subjects: List[str]
+    data_dir: Path, location: str, excluded_subjects_list: List[Dict]
 ) -> Tuple[List[Dict], List[Dict]]:
-    """Process all subject files in a location and separate into 
+    """Process all subject files in a location and separate into
     all and included metrics."""
     location_dir = data_dir / location
     all_metrics = []
     included_metrics = []
 
     for file_path in location_dir.glob("*.csv"):
-        subject_id = file_path.stem
+        subject_id = file_path.stem  # Get subject ID
         df = pd.read_csv(file_path)
         subject_metrics = process_stop_signal_data(subject_id, df, location)
 
         all_metrics.append(subject_metrics)
-        if subject_id not in excluded_subjects:
+
+        # Correct Exclusion Check (iterate through the list of dicts)
+        is_excluded = False
+        for excluded_subject_dict in excluded_subjects_list:
+            if excluded_subject_dict.get('subject_id') == subject_id: # safer .get to prevent errors
+                is_excluded = True
+                break  # No need to continue checking once found
+
+        if not is_excluded:
             included_metrics.append(subject_metrics)
 
     return all_metrics, included_metrics
@@ -1015,16 +1028,22 @@ def format_metric_value(value: float, is_probability: bool) -> str:
     """Format metric value according to its type."""
     return f"{value:.2f}" if is_probability else f"{int(value)}"
 
+def create_table(metrics: Dict[str, pd.DataFrame], locs: List[str], metric_display: Dict[str, str]) -> pd.DataFrame:
+    table_data = []
+    for location in locs:
+        row_data = {'Location': location}
+        for metric_key, display_name in metric_display.items():
+            mean = calculate_metric_means(metrics[location], metric_key)
+            is_probability = metric_key == "p2_prob_stop"
+            row_data[display_name] = format_metric_value(mean, is_probability)
+        table_data.append(row_data)
+    
+    df = pd.DataFrame(table_data)
+    return df
 
-def create_stopping_results_table(
-    data_dir: Path, location: str, excluded_subjects: List[str]
-) -> pd.DataFrame:
-    """Create summary table of stopping results comparing all vs included subjects."""
-    # Process all files
-    all_metrics, included_metrics = process_subject_files(
-        data_dir, location, excluded_subjects
-    )
-
+#Create a table with the means of metrics for each location. The location name should be in the index
+def create_stopping_results_tables(data_dir: Path, table_dir: Path, excluded_subjects: Dict[str, List[str]]) -> Dict[str, pd.DataFrame]:
+    """Create summary tables of stopping results comparing all vs included subjects across locations."""
     metric_display = {
         "p2_go_RT": "Go RT (ms)",
         "p2_goRT_stop_shapes": "Go RT Stop shapes (ms)",
@@ -1034,36 +1053,65 @@ def create_stopping_results_table(
         "p2_SSRT": "SSRT (ms)",
     }
 
-    summary_data = {location: [], "All": [], "Subset": []}
+    locations = ["Stanford", "Tel Aviv", "UNC", "DR1", "DR2"]
+    all_metrics = {loc: {} for loc in locations}
+    included_metrics = {loc: {} for loc in locations}
 
-    for metric_key, display_name in metric_display.items():
-        summary_data[location].append(display_name)
-
-        all_mean = calculate_metric_means(all_metrics, metric_key)
-        included_mean = calculate_metric_means(included_metrics, metric_key)
-
-        is_probability = metric_key == "p2_prob_stop"
-        summary_data["All"].append(format_metric_value(all_mean, is_probability))
-        summary_data["Subset"].append(
-            format_metric_value(included_mean, is_probability)
+    # Process all files for each location
+    for location in locations:
+        all_metrics[location], included_metrics[location] = process_subject_files(
+            data_dir, location, excluded_subjects.get(location, [])
         )
 
-    return pd.DataFrame(summary_data)
+    # Create the tables
+    table1 = create_table(included_metrics, ["Stanford", "Tel Aviv", "UNC"], metric_display)
+    tableS1 = create_table(all_metrics, ["Stanford", "Tel Aviv", "UNC"], metric_display)
+    tableS2 = create_table(included_metrics, ["DR1", "DR2"], metric_display)
+    tableS3 = create_table(all_metrics, ["DR1", "DR2"], metric_display)
 
+    # Save the tables to the table_dir
+    table1.to_csv(table_dir / "table1.csv", index=False)
+    tableS1.to_csv(table_dir / "tableS1.csv", index=False)
+    tableS2.to_csv(table_dir / "tableS2.csv", index=False)
+    tableS3.to_csv(table_dir / "tableS3.csv", index=False)
 
-def create_figure2(data_dir: Path, figure_dir: Path):
+def plot_figure2_and_s2(data, filename, title):
+    plt.figure(figsize=(10, 6))
+
+    # Determine the order of samples
+    if 'DR1' in data['Sample'].unique():
+        sample_order = ['DR1', 'DR2']
+    else:
+        sample_order = ['Stanford', 'Tel Aviv', 'UNC']
+
+    sns.stripplot(
+        data=data, x="Sample", y="Devaluation", color="gray", size=5, alpha=0.3, jitter=True,
+        order=sample_order
+    )
+
+    sns.pointplot(
+        data=data,
+        x="Sample",
+        y="Devaluation",
+        join=False,
+        markers="d",
+        color="black",
+        capsize=0.2,
+        errorbar="se",
+        order=sample_order
+    )
+
+    plt.xlabel("Sample")
+    plt.ylabel("Devaluation")
+    plt.title(title)
+    plt.savefig(filename, dpi=300, bbox_inches="tight")
+    plt.close()
+
+def create_figure2_and_s2(data_dir: Path, figure_dir: Path):
     """
-    Create a stripplot visualization of IID effects by location with individual subject points and confidence intervals.
-
-    Args:
-        data_dir: Path to the data directory containing subject data files
-        figure_dir: Path to the directory where the figure will be saved
-
-    The figure shows:
-    - Individual subject points (gray dots)
-    - Mean IID effect per location (black diamonds)
-    - Standard error bars for each location
-    - Jittered points to avoid overlap
+    Create stripplot visualizations of IID effects by location with individual subject points and confidence intervals.
+    Figure 2 includes Stanford, Tel Aviv, and UNC.
+    Figure S2 includes DR1 and DR2.
     """
     # Prepare data for plotting
     plot_data = []
@@ -1087,36 +1135,16 @@ def create_figure2(data_dir: Path, figure_dir: Path):
     # Convert to DataFrame
     plot_df = pd.DataFrame(plot_data)
 
-    if plot_df.empty:  # Handle the case where no data was loaded.
-        print("No data to plot. Skipping figure creation.")
-        return
+    # Create Figure 2 (Stanford, Tel Aviv, UNC)
+    plot_figure2_and_s2(plot_df[plot_df['Sample'].isin(['Stanford', 'Tel Aviv', 'UNC'])], 
+                  figure_dir / "figure2.png", 
+                  "IID Effect with Confidence Intervals (Stanford, Tel Aviv, UNC)")
 
-    # Create the plot
-    plt.figure(figsize=(10, 6))
+    # Create Figure S2 (DR1, DR2)
+    plot_figure2_and_s2(plot_df[plot_df['Sample'].isin(['DR1', 'DR2'])], 
+                  figure_dir / "figureS2.png", 
+                  "IID Effect with Confidence Intervals (DR1, DR2)")
 
-    # Combine stripplot with pointplot for individual points and CIs
-    sns.stripplot(
-        data=plot_df, x="Sample", y="Devaluation", color="gray", size=5, alpha=0.3, jitter=True
-    )  # Add jitter
-
-    sns.pointplot(
-        data=plot_df,
-        x="Sample",
-        y="Devaluation",
-        join=False,  # Don't connect the points with lines
-        markers="d",  # Use diamond markers
-        color="black",  # Make the points black
-        capsize=0.2,  # Add caps to the error bars for better visibility
-        errorbar="se", # Show standard error for the error bars
-    )
-
-    # Customize the plot
-    plt.xlabel("Sample")
-    plt.ylabel("Devaluation")
-    plt.title("IID Effect with Confidence Intervals")  # Add a title
-    # Save the figure
-    plt.savefig(figure_dir / "figure2.png", dpi=300, bbox_inches="tight")
-    plt.close()
 
 def find_devaluation_counts(positive_counts: float, negative_counts: float, zero_counts: float, iid_effect: float) -> Tuple[int, int, int]:
     """
@@ -1250,7 +1278,8 @@ def run_standard_analyses(
         DataFrame containing the results of the equivalence test.
     """
     # Create devaluation figure
-    create_devaluation_figure(df, location, subject_type, figure_dir)
+    if subject_type == "included" and location != "combined":
+        create_devaluation_figure(df, location, subject_type, figure_dir)
 
     # Perform RM ANOVA
     perform_rm_anova(df, location, subject_type, output_dir)

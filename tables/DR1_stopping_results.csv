@@ -1,7 +1,0 @@
-DR1,All,Subset
-Go RT (ms),607,608
-Go RT Stop shapes (ms),624,616
-Go RT Non-Stop Shapes (ms),604,605
-Stop-Failure RT (ms),539,530
-p(resp|signal),0.44,0.45
-SSRT (ms),190,195

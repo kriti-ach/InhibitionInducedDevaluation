@@ -1,0 +1,3 @@
+Location,Go RT (ms),Go RT Stop shapes (ms),Go RT Non-Stop Shapes (ms),Stop-Failure RT (ms),p(resp|signal),SSRT (ms)
+DR1,608,616,605,530,0.45,195
+DR2,578,584,577,467,0.46,152
