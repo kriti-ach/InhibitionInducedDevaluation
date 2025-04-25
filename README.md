@@ -31,14 +31,17 @@ source setup_env.sh
     - /inhibition_induced_devaluation:
         * [main.py]: Script to run the preprocessing and analysis using the utility functions. 
         - /utils: 
-            * [utils.py]: Helper functions to condense `main.py` notebooks.  
+            * [utils.py]: Helper functions to condense `main.py` notebooks.
+            * [globals.py]: Contains the global variables, including the explicit knowledge subjects from each location. 
+            * [phase2_utils.py]: Contains utility functions to process Phase 2.
+            * [phase3_utils.py]: Contains utility functions to process Phase 3.
 - /tables:  
     - Contains the tables in the paper.
 - /tests:
     - Contains tests for major functions.
     - Run tests using `uv run pytest`
 - /output:
-    - Contains output stats including ANOVAs, equivalence tests, and Bayes Factors. 
+    - Contains output stats including Bayes Factors and exclusion summaries. 
 
 ## Notes
 

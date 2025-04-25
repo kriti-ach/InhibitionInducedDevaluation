@@ -1,6 +1,6 @@
 import pandas as pd
 
-from inhibition_induced_devaluation.utils.utils import (
+from inhibition_induced_devaluation.utils.phase3_utils import (
     calculate_iid_effect,
     calculate_mean_bids,
     get_phase3_data,

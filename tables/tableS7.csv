@@ -1,0 +1,7 @@
+,,DR1,DR2
+Stopping Main Effect,Main effect p-value,0.898,0.972
+Stopping Main Effect,Bayes Factor BF01,5.18,5.14
+Stopping Main Effect,Equivalence test,"t(30) = 3.03, p = 0.003","t(29) = -2.09, p = 0.023"
+Stopping Main Effect,Subjects with Non-stop <= Stop,< .001,< .001
+Other Effects,Main effect of Value p-value,0.589,0.414
+Other Effects,Interaction p-value,16 of 31,16 of 30

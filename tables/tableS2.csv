@@ -1,3 +1,7 @@
-Location,Go RT (ms),Go RT Stop shapes (ms),Go RT Non-Stop Shapes (ms),Stop-Failure RT (ms),p(resp|signal),SSRT (ms)
-DR1,608,616,605,530,0.45,195
-DR2,578,584,577,467,0.46,152
+,,Stanford,Tel Aviv,UNC,Combined
+Stopping Main Effect,Main effect p-value,0.890,0.918,0.974,0.999
+Stopping Main Effect,Bayes Factor BF01,11.07,10.97,11.37,19.23
+Stopping Main Effect,Equivalence test,"t(154) = 7.42, p < .001","t(150) = -7.13, p < .001","t(160) = -8.00, p < .001","t(466) = 13.19, p < .001"
+Stopping Main Effect,Subjects with Non-stop <= Stop,< .001,< .001,< .001,< .001
+Other Effects,Main effect of Value p-value,0.047,0.576,0.205,0.174
+Other Effects,Interaction p-value,89 of 155,82 of 151,83 of 161,254 of 467

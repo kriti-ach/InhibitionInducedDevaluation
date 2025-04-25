@@ -1,6 +1,6 @@
 import numpy as np
 
-from inhibition_induced_devaluation.utils.utils import check_exclusion_criteria
+from inhibition_induced_devaluation.utils.phase2_utils import check_exclusion_criteria
 
 
 def test_check_exclusion_criteria_include():

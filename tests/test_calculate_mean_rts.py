@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from inhibition_induced_devaluation.utils.utils import calculate_mean_rts
+from inhibition_induced_devaluation.utils.phase2_utils import calculate_mean_rts
 
 
 def test_calculate_mean_rts():

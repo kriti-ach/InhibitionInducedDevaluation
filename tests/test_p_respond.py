@@ -1,6 +1,6 @@
 import pandas as pd
 
-from inhibition_induced_devaluation.utils.utils import calculate_p_respond
+from inhibition_induced_devaluation.utils.phase2_utils import calculate_p_respond
 
 
 def test_calculate_p_respond_basic():

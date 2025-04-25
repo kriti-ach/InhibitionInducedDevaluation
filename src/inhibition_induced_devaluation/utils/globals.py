@@ -267,3 +267,27 @@ PHASE1_EXPLICIT_KNOWLEDGE = {
         "S308",
     ],
 }
+
+# Dictionary of Bayes Factor values for each subject type and location
+# Format: {subject_type}_{location} (all lowercase, no spaces)
+BAYES_FACTORS = {
+    # Included subjects
+    "included_stanford": 8.08,
+    "included_tel_aviv": 6.62,
+    "included_unc": 8.39,
+    "included_combined": 12.74,
+    "included_dr1": 1.87,
+    "included_dr2": 1.57,
+    # All subjects
+    "all_stanford": 11.07,
+    "all_tel_aviv": 10.97,
+    "all_unc": 11.37,
+    "all_combined": 19.23,
+    "all_dr1": 5.18,
+    "all_dr2": 5.14,
+    # Phase 1 subjects
+    "phase1_stanford": 2.90,
+    "phase1_tel_aviv": 3.22,
+    "phase1_unc": 4.66,
+    "phase1_combined": 4.52,
+}

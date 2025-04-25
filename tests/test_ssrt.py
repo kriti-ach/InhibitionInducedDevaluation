@@ -1,6 +1,6 @@
 import numpy as np
 
-from inhibition_induced_devaluation.utils.utils import calculate_ssrt_value
+from inhibition_induced_devaluation.utils.phase2_utils import calculate_ssrt_value
 
 
 def test_calculate_ssrt_basic():

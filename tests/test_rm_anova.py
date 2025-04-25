@@ -1,7 +1,9 @@
+
 import pandas as pd
 import pytest
-from pathlib import Path
+
 from inhibition_induced_devaluation.utils.utils import perform_rm_anova
+
 
 @pytest.fixture
 def sample_data():
@@ -19,29 +21,38 @@ def temp_output_dir(tmp_path):
     """Create temporary output directory"""
     return tmp_path
 
-def test_perform_rm_anova_creates_output(sample_data, temp_output_dir):
-    """Test that perform_rm_anova creates output file with expected content"""
-    perform_rm_anova(sample_data, "TEST", "all", temp_output_dir)
-    
-    # Check if anovas directory was created
-    anova_dir = temp_output_dir / "anovas"
-    assert anova_dir.exists()
-    
-    # Check if output file was created
-    output_file = anova_dir / "TEST_all_rm_anova_results.txt"
-    assert output_file.exists()
-    
-    # Check file content
-    content = output_file.read_text()
-    assert "Repeated Measures ANOVA Results for TEST - all subjects" in content
-    assert "STOP_CONDITION" in content
-    assert "VALUE_LEVEL" in content
+def test_perform_rm_anova_creates_output(sample_data):
+    """Test that perform_rm_anova returns a valid AnovaRM result object"""
+    result = perform_rm_anova(sample_data)
 
-def test_perform_rm_anova_categorical_conversion(sample_data, temp_output_dir):
+    # Verify we get the right type of result
+    assert result is not None
+    assert hasattr(result, 'anova_table')
+
+    # Check ANOVA table has expected effects
+    assert "STOP_CONDITION" in result.anova_table.index
+    assert "VALUE_LEVEL" in result.anova_table.index
+    assert "STOP_CONDITION:VALUE_LEVEL" in result.anova_table.index
+
+def test_perform_rm_anova_categorical_conversion(sample_data):
     """Test that variables are properly converted to categorical"""
     # Make copy to verify conversion
     test_data = sample_data.copy()
-    perform_rm_anova(test_data, "TEST", "all", temp_output_dir)
-    
+    _ = perform_rm_anova(test_data)
+
     assert test_data["STOP_CONDITION"].dtype.name == "category"
     assert test_data["VALUE_LEVEL"].dtype.name == "category"
+
+def test_perform_rm_anova_results(sample_data):
+    """Test that the ANOVA results contain expected columns"""
+    result = perform_rm_anova(sample_data)
+
+    # Check that the ANOVA table has the expected columns
+    expected_columns = ['F Value', 'Pr > F']
+    for col in expected_columns:
+        assert col in result.anova_table.columns
+
+    # Check that p-values are floats between 0 and 1
+    for p_value in result.anova_table['Pr > F']:
+        assert isinstance(p_value, float)
+        assert 0 <= p_value <= 1
