@@ -651,15 +651,18 @@ def process_subject_files(
     return all_metrics, included_metrics
 
 
-def calculate_metric_means(metrics_list: List[Dict], metric_key: str) -> float:
-    """Calculate mean for a specific metric across subjects."""
-    return np.nanmean([m[metric_key]
-                       for m in metrics_list]) #nanmean to ignore NaNs in SSRT
+def calculate_metric_means(metrics_list: List[Dict],
+                           metric_key: str) -> Tuple[float, float]:
+    """Calculate mean and standard deviation for a specific metric across subjects."""
+    values = [m[metric_key] for m in metrics_list]
+    return np.nanmean(values), np.nanstd(values)  # nanmean and nanstd to ignore NaNs
 
 
-def format_metric_value(value: float, is_probability: bool) -> str:
-    """Format metric value according to its type."""
-    return f"{value:.2f}" if is_probability else f"{int(value)}"
+def format_metric_value(mean: float, std: float, is_probability: bool) -> str:
+    """Format metric value with standard deviation according to its type."""
+    if is_probability:
+        return f"{mean:.2f} ({std:.2f})"
+    return f"{int(mean)} ({int(std)})"
 
 def populate_stopping_results_table(metrics: Dict[str, pd.DataFrame],
                                     locs: List[str], metric_display:
@@ -668,9 +671,9 @@ def populate_stopping_results_table(metrics: Dict[str, pd.DataFrame],
     for location in locs:
         row_data = {'Location': location}
         for metric_key, display_name in metric_display.items():
-            mean = calculate_metric_means(metrics[location], metric_key)
+            mean, std = calculate_metric_means(metrics[location], metric_key)
             is_probability = metric_key == "p2_prob_stop"
-            row_data[display_name] = format_metric_value(mean, is_probability)
+            row_data[display_name] = format_metric_value(mean, std, is_probability)
         table_data.append(row_data)
 
     return pd.DataFrame(table_data)
@@ -750,6 +753,7 @@ def plot_figure2_and_s2(data, filename):
 
     plt.xlabel("Sample")
     plt.ylabel("Devaluation")
+    plt.ylim(-4, 4)
     plt.savefig(filename, dpi=300, bbox_inches="tight")
     plt.close()
 
@@ -1049,7 +1053,7 @@ def analyze_rt_differences(metrics: Dict[str, List[Dict]]) -> None:
             t_stat, p_val3 = stats.ttest_rel(stopfail_rt, go_go_shapes_rt)
 
             if p_val1 < 0.001 and p_val2 < 0.001 and p_val3 < 0.001:
-                print(f"All p-values comparing Go RT to" +
+                print("All p-values comparing Go RT to" +
                       f"Stop-failure RT are less than 0.001 for {location}")
             else:
                 print(f"At least one p-value is greater than 0.001 for {location}")
