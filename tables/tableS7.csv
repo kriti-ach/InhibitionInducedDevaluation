@@ -1,7 +1,7 @@
-,,DR1,DR2
-Stopping Main Effect,Main effect p-value,0.898,0.972
-Stopping Main Effect,Bayes Factor BF01,5.18,5.14
-Stopping Main Effect,Equivalence test,"t(30) = 3.03, p = 0.003","t(29) = -2.09, p = 0.023"
-Stopping Main Effect,Subjects with Non-stop <= Stop,< .001,< .001
-Other Effects,Main effect of Value p-value,0.589,0.414
-Other Effects,Interaction p-value,16 of 31,16 of 30
+Effect,Test,DR1,DR2
+Stopping,Main effect,"Stopping F(1, 30) = 0.02, p = 0.898","Stopping F(1, 29) = 0.00, p = 0.972"
+Stopping,BF₀₁,5.18,5.14
+Stopping,Equivalence test,"t(30) = 1.39, p = 0.088","t(29) = -0.99, p = 0.166"
+Stopping,Count of Non-stop <= Stop,16 of 31,16 of 30
+Value,Main effect,"Value F(3, 90) = 11.13, p < .001","Value F(3, 87) = 11.48, p < .001"
+Interaction,Interaction,"Interaction F(3, 90) = 0.64, p = 0.589","Interaction F(3, 87) = 0.96, p = 0.414"

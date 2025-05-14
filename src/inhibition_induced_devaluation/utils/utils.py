@@ -317,8 +317,9 @@ def get_both_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
             for exc in location_exclusions:
                 if exc["reason"] == "Behavior":
                     reason = exc["detailed_reason"]
-                    location_behavioral_reasons
-                    [reason] = location_behavioral_reasons.get(reason, 0) + 1
+                    location_behavioral_reasons[reason] = (
+                        location_behavioral_reasons.get(reason, 0) + 1
+                        )
 
             # Add explicit knowledge exclusions
             location_exclusions = add_explicit_knowledge_exclusions(
@@ -334,9 +335,9 @@ def get_both_exclusions(data_dir: Path) -> Dict[str, List[Dict]]:
                     # Remove from behavioral count since it's now counted as both
                     reason = exc["detailed_reason"].split
                     (" and reported explicit knowledge")[0]
-                    location_behavioral_reasons
-                    [reason] = location_behavioral_reasons.get(
-                        reason, 0) - 1
+                    location_behavioral_reasons[reason] = (
+                        location_behavioral_reasons.get(reason, 0) - 1
+                        )
             save_exclusion_summary(location_dir.name,
                                    location_behavioral_reasons,
                                    location_explicit_knowledge,
@@ -547,7 +548,7 @@ def combine_location_data(data_dict: Dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 
 def perform_equivalence_testing(
-    df: pd.DataFrame, location: str, subject_type: str, equivalence_margin: float = 0.5
+    df: pd.DataFrame, location: str, subject_type: str, equivalence_margin: float = 0.24
 ) -> pd.DataFrame:
     """
     Perform equivalence testing on the data.
@@ -814,6 +815,24 @@ def find_devaluation_counts(positive_counts: float, negative_counts: float,
         return positive_counts, negative_counts + 1, zero_counts
     return positive_counts, negative_counts, zero_counts + 1
 
+def format_f_statistics(stats, name):
+    """
+    Format F-statistic results into a string.
+
+    Args:
+        stats (dict): A dictionary containing the statistical results with keys:
+                      'Num DF', 'Den DF', 'F Value', 'Pr > F'.
+        name (str): Name of the statistical test
+        (e.g., 'Stopping', 'Value', 'Interaction').
+
+    Returns:
+        str: Formatted string with F-statistic results.
+    """
+    return (f"{name} F({int(stats['Num DF'])}, "
+            f"{int(stats['Den DF'])}) = "
+            f"{stats['F Value']:.2f}, p "
+            f"{'< .001' if stats['Pr > F'] < 0.001 else f'= {stats['Pr > F']:.3f}'}")
+
 def create_results_table(
     data_dict: Dict[str, pd.DataFrame],
     subject_type: str,
@@ -823,13 +842,13 @@ def create_results_table(
 ) -> pd.DataFrame:
     # Initialize a DataFrame to store results with a multi-level index
     index = pd.MultiIndex.from_tuples([
-        ('Stopping Main Effect', 'Main effect p-value'),
-        ('Stopping Main Effect', 'Bayes Factor BF01'),
-        ('Stopping Main Effect', 'Equivalence test'),
-        ('Stopping Main Effect', 'Subjects with Non-stop <= Stop'),
-        ('Other Effects', 'Main effect of Value p-value'),
-        ('Other Effects', 'Interaction p-value'),
-    ])
+        ('Stopping', 'Main effect'),
+        ('Stopping', 'BF₀₁'),
+        ('Stopping', 'Equivalence test'),
+        ('Stopping', 'Count of Non-stop <= Stop'),
+        ('Value', 'Main effect'),
+        ('Interaction', 'Interaction'),
+    ], names=['Effect', 'Test'])
     results = pd.DataFrame(index=index)
 
     # Process each location
@@ -842,18 +861,26 @@ def create_results_table(
                 continue
         df = data_dict[location]
 
-        # ANOVA and other calculations (same as before)
+        # ANOVA and other calculations
         anova_result = perform_rm_anova(df)
-        p_stopping = anova_result.anova_table.loc["STOP_CONDITION", "Pr > F"]
-        p_value = anova_result.anova_table.loc["VALUE_LEVEL", "Pr > F"]
-        p_interaction = anova_result.anova_table.loc["STOP_CONDITION:VALUE_LEVEL",
-                                                     "Pr > F"]
 
+        # Get F-values, degrees of freedom, and p-values for each effect
+        stopping_stats = anova_result.anova_table.loc["STOP_CONDITION"]
+        value_stats = anova_result.anova_table.loc["VALUE_LEVEL"]
+        interaction_stats = anova_result.anova_table.loc["STOP_CONDITION:VALUE_LEVEL"]
+
+        # Format ANOVA results
+        stopping_string = format_f_statistics(stopping_stats, 'Stopping')
+        value_string = format_f_statistics(value_stats, 'Value')
+        interaction_string = format_f_statistics(interaction_stats, 'Interaction')
+
+        # Equivalence testing
         t_lower, t_upper, p_lower, p_upper = perform_equivalence_testing(
             df, location, subject_type)
         equiv_p = max(p_lower, p_upper)
         equiv_t = t_lower if abs(t_lower) < abs(t_upper) else t_upper
 
+        # Count subjects where Non-stop <= Stop
         aggregated_df = df.groupby(["SUBJECT", "STOP_CONDITION"],
                                    observed=True)["BIDDING_LEVEL"].mean().reset_index()
         paired_df = aggregated_df.pivot(index="SUBJECT",
@@ -864,24 +891,23 @@ def create_results_table(
         total_subjects = len(paired_df)
         n = len(paired_df)
 
-        equiv_string = (f"t({n-1}) = {equiv_t:.2f}, p "
-                        f"{'< .001' if equiv_p < 0.001 else f'= {equiv_p:.3f}'}")
-
+        # Get Bayes Factor
         bf_key = f"{subject_type.lower()}_{location.lower().replace(' ', '_')}"
         bf_value = BAYES_FACTORS.get(bf_key, "")
         bf_string = f"{bf_value:.2f}" if bf_value != "" else ""
 
         # Store results for this location
         results[location] = [
-            f"{p_stopping:.3f}" if p_stopping >= 0.001 else "< .001",
+            stopping_string,
             bf_string,
-            equiv_string,
-            f"{p_value:.3f}" if p_value >= 0.001 else "< .001",
-            f"{p_interaction:.3f}" if p_interaction >= 0.001 else "< .001",
+            f"t({n-1}) = {equiv_t:.2f}, p {'< .001' if
+                                           equiv_p < 0.001 else f'= {equiv_p:.3f}'}",
             f"{nostop_less_than_equal_to_stop} of {total_subjects}",
+            value_string,
+            interaction_string,
         ]
 
-    # Determine the output file (same as before)
+    # Determine the output file
     if is_dr_site:
         output_file = output_dir / ("tableS6.csv" if
                                     subject_type == "included" else "tableS7.csv")
@@ -985,6 +1011,48 @@ def create_dr_tables(data_dict: Dict[str, pd.DataFrame],
         create_tables_for_subject_type(data_dict, subject_type, table_dir,
                                        dr_locations, is_dr_site=True)
 
+def analyze_rt_differences(metrics: Dict[str, List[Dict]]) -> None:
+    """
+    Analyze and print statistical comparisons of RTs and SSRTs across locations.
+
+    Args:
+        metrics: Dictionary containing metrics for each location
+    """
+    locations = ["Stanford", "Tel Aviv", "UNC"]
+
+    # Extract RTs and SSRTs for each location
+    rt_data = {}
+    for location in locations:
+        if location in metrics:
+            rt_data[location] = {
+                'stopfail_rt': [m['p2_stopfail_RT'] for m in metrics[location]],
+                'go_rt': [m['p2_go_RT'] for m in metrics[location]],
+                'go_stop_shapes_rt': ([m['p2_goRT_stop_shapes']
+                                       for m in metrics[location]]),
+                'go_go_shapes_rt': [m['p2_goRT_go_shapes'] for m in metrics[location]]
+            }
+    # Compare RTs within each location
+    for location in locations:
+        if location in rt_data:
+
+            # Compare stop-failure RT with other RTs
+            stopfail_rt = rt_data[location]['stopfail_rt']
+            go_rt = rt_data[location]['go_rt']
+            go_stop_shapes_rt = rt_data[location]['go_stop_shapes_rt']
+            go_go_shapes_rt = rt_data[location]['go_go_shapes_rt']
+
+            # Stop-failure RT vs Go RT (all shapes)
+            t_stat, p_val1 = stats.ttest_rel(stopfail_rt, go_rt)
+            # Stop-failure RT vs Go RT (stop shapes)
+            t_stat, p_val2 = stats.ttest_rel(stopfail_rt, go_stop_shapes_rt)
+            # Stop-failure RT vs Go RT (go shapes)
+            t_stat, p_val3 = stats.ttest_rel(stopfail_rt, go_go_shapes_rt)
+
+            if p_val1 < 0.001 and p_val2 < 0.001 and p_val3 < 0.001:
+                print(f"All p-values comparing Go RT to" +
+                      f"Stop-failure RT are less than 0.001 for {location}")
+            else:
+                print(f"At least one p-value is greater than 0.001 for {location}")
 
 def analyze_iid_effects_by_site(
     data_dir: Path,
@@ -1010,7 +1078,6 @@ def analyze_iid_effects_by_site(
         combined_all_data: Combined all data
         combined_included_data: Combined included data
     """
-
     jasp_dir = output_dir / "csvs_for_jasp"
     jasp_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1034,8 +1101,20 @@ def analyze_iid_effects_by_site(
     create_dr_tables(data_included, "included", table_dir)
     create_dr_tables(data_all, "all", table_dir)
 
-    # Create devaluation figures for included subjects and JASP
-    # format files for all sites
+    # Process subject files and analyze RT differences
+    all_metrics = {}
+    for location in main_locations:
+        all_metrics[location], _ = process_subject_files(data_dir,
+                                                         location,
+                                                         excluded_subjects.get(
+                                                             location, []
+                                                             ))
+
+    # Analyze and print RT differences
+    analyze_rt_differences(all_metrics)
+
+    # Create devaluation figures for included subjects and
+    # JASP format files for all sites
     for location_dir in data_dir.iterdir():
         if not location_dir.is_dir() or location_dir.name.startswith("."):
             continue
