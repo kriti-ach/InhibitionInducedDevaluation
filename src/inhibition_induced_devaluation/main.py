@@ -8,6 +8,7 @@ from inhibition_induced_devaluation.utils.utils import (
     get_both_exclusions,
     get_iqr_exclusions,
     get_processed_data,
+    average_bidding_by_value_level_across_sites,
 )
 
 
@@ -57,6 +58,7 @@ def main():
 
     # Create stopping results tables
     create_stopping_results_tables(data_dir, table_dir, all_exclusions)
+    average_bidding_by_value_level_across_sites(included_data, output_dir)
     # Store all equivalence results
 
     # --- Combined Analyses ---

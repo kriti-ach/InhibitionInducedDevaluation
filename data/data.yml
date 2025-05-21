@@ -34,6 +34,7 @@ columns:
     Example: "1.0"
   - reaction_time:
     Description: The reaction time in milliseconds.
+    (0 = no response)
     Type: float
     Example: "369.7879840619860"
   - block:
@@ -47,10 +48,10 @@ columns:
     (1 = 1 presentation; 2 = 2 presentations; 3 = 3 presentations; 4 = 4 presentations)
     Type: float
     Example: "1.0"
-  - which_part:
-    Description: The phase/part of the experiment.
+  - which_phase:
+    Description: The phase of the experiment.
     Type: String
-    Example: ""part_ 1""
+    Example: ""phase_1""
   - stop_signal_trial_type:
     Description: For phase 2 only, whether the trial is a go or stop trial.
     Type: String

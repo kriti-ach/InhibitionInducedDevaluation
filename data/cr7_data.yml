@@ -1,0 +1,51 @@
+columns:
+  - response: 
+    Description: The subject's response to the stimulus.
+    (1 = go 1, 0 = no go)
+    Type: int
+    Example: "0"
+  - reaction_time:
+    Description: The time it took the subject to respond to the stimulus, in milliseconds.
+    (0 = no response)
+    Type: float
+    Example: "0.0"
+  - block:
+    Description: The current block in a given phase of the experiment. Phase 2 has 18 blocks, Phase 3 has 5 blocks.
+    Type: int
+    Example: "1"
+  - which_phase:
+    Description: The phase of the experiment.
+    Type: String
+    Example: ""phase_2""
+  - go_nogo_type:
+    Description: For phase 2 only, whether the trial is a go or nogo trial. There are 2 go stimuli and 2 nogo stimuli.
+    Type: String
+    Example: ""go1""
+  - accuracy:
+    Description: Accuracy in Phase 2. (1 = Correct; 2 = Choice error; 3 = Failed stop; 4 = Successful stop; 5 = Omission)
+    Type: float
+    Example: "1"
+  - chosen_stim:
+    Description: The color-shape stimulus that the subject chose in Phase 3.
+    Type: String
+    Example: "red-square"
+  - chosen_cond:
+    Description: The condition of the chosen stimulus.
+    Type: String
+    Example: "go1", "go2", "nogo1", "nogo2"
+  - stim_left:
+    Description: The color-shape stimulus on the left side of the screen in Phase 3.
+    Type: String
+    Example: "red-square"
+  - cond_left:
+    Description: The condition of the left stimulus in Phase 3.
+    Type: String
+    Example: "go1", "go2", "nogo1", "nogo2"
+  - stim_right:
+    Description: The color-shape stimulus on the right side of the screen in Phase 3.
+    Type: String
+    Example: "blue-square"
+  - cond_right:
+    Description: The condition of the right stimulus in Phase 3.
+    Type: String
+    Example: "go1", "go2", "nogo1", "nogo2"

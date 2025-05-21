@@ -441,8 +441,8 @@ def get_processed_data(
     return processed_data
 
 def create_devaluation_figure(
-    df: pd.DataFrame, location: str, subject_type: str, figure_dir: Path
-) -> None:
+    df: pd.DataFrame, location: str, subject_type: str, figure_dir: Path, ax: plt.Axes = None
+) -> plt.Axes:
     """
     Create devaluation figure from processed data.
 
@@ -451,6 +451,9 @@ def create_devaluation_figure(
         location: Collection location
         subject_type: Type of subjects ('all', 'included', or 'phase1')
         figure_dir: Path to figures directory
+        ax: Optional matplotlib Axes object for subplotting
+    Returns:
+        matplotlib Axes object
     """
     # Define the desired order for 'VALUE_LEVEL'
     value_level_order = pd.CategoricalDtype(["L", "LM", "HM", "H"], ordered=True)
@@ -477,29 +480,42 @@ def create_devaluation_figure(
     )
 
     # Create figure
-    plt.figure(figsize=(10, 6))
-    avg_pivot.plot(kind="bar", yerr=sem_pivot, capsize=4)
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 6)) # If ax is None create a new figure
+    avg_pivot.plot(kind="bar", yerr=sem_pivot, capsize=4, ax=ax)
 
-    plt.title(f"{location} - {subject_type} subjects")
-    plt.xlabel("Value Level")
-    plt.ylabel("Average Bidding Level")
-    plt.xticks(rotation=0)
-    plt.yticks(np.arange(1, 7, 1))
-    plt.legend(title="Stop Condition")
 
-    # Save figure
-    if location == "Stanford":
-        plt.savefig(figure_dir / "figure1a.png")
-    elif location == "Tel Aviv":
-        plt.savefig(figure_dir / "figure1b.png")
-    elif location == "UNC":
-        plt.savefig(figure_dir / "figure1c.png")
-    elif location == "DR1":
-        plt.savefig(figure_dir / "figureS1a.png")
-    elif location == "DR2":
-        plt.savefig(figure_dir / "figureS1b.png")
-    plt.close()
+    ax.set_title(f"{location} - {subject_type} subjects")
+    ax.set_xlabel("Value Level")
+    ax.set_ylabel("Average Bidding Level")
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=0)  # Ensure x-axis labels are rotated
+    ax.set_yticks(np.arange(1, 7, 1))
+    ax.legend(title="Stop Condition")
 
+    return ax  # Return the axes object, it can be used if no ax provided.
+
+def create_combined_devaluation_figures(data, figure_dir: Path, subject_type: str):
+    """Creates combined devaluation figures (side-by-side plots)."""
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))  # 1 row, 3 columns for Stanford, Tel Aviv, UNC
+    locations_abc = ["Stanford", "Tel Aviv", "UNC"]
+
+    for i, location in enumerate(locations_abc):
+        df = data[location]
+        ax = create_devaluation_figure(df, location, subject_type, figure_dir, axes[i]) # Pass axes object
+    plt.tight_layout()
+    plt.savefig(figure_dir / "figure1.png")
+    plt.close(fig)  # Close the figure to prevent memory issues.
+
+    # Create the combined figure for DR1 and DR2
+    fig_s, axes_s = plt.subplots(1, 2, figsize=(12, 6))  # 1 row, 2 columns for DR1, DR2
+    locations_s = ["DR1", "DR2"]
+    for i, location in enumerate(locations_s):
+        df = data[location]
+        ax = create_devaluation_figure(df, location, subject_type, figure_dir, axes_s[i])
+    plt.tight_layout()
+    plt.savefig(figure_dir / "figureS1.png")
+    plt.close(fig_s)
 
 def perform_rm_anova(
     df: pd.DataFrame) -> AnovaRM:
@@ -523,8 +539,6 @@ def perform_rm_anova(
         subject="SUBJECT",
         within=["STOP_CONDITION", "VALUE_LEVEL"],
     ).fit()
-
-
 
 def combine_location_data(data_dict: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
@@ -1126,9 +1140,7 @@ def analyze_iid_effects_by_site(
         location = location_dir.name
 
         # Create devaluation figures for included subjects
-        if location in data_included:
-            create_devaluation_figure(data_included[location], location,
-                                      "included", figure_dir)
+        create_combined_devaluation_figures(data_included, figure_dir, "included")
 
         # Create JASP format files for all subject types
         create_jasp_files(data_included, "included", jasp_dir, location)
@@ -1139,3 +1151,22 @@ def analyze_iid_effects_by_site(
     create_jasp_files(data_included, "included", jasp_dir, "Combined")
     create_jasp_files(data_all, "all", jasp_dir, "Combined")
     create_jasp_files(data_phase1, "phase1", jasp_dir, "Combined")
+
+def average_bidding_by_value_level_across_sites(data_included: Dict[str, pd.DataFrame], output_dir: Path, main_sites: list = ["Stanford", "Tel Aviv", "UNC"]) -> pd.DataFrame:
+    """
+    Compute the average bidding level for each value level (L, LM, HM, H) across all main sites.
+
+    Args:
+        data_included: Dictionary of processed DataFrames by location.
+        main_sites: List of main site names to include.
+
+    Returns:
+        DataFrame with index as VALUE_LEVEL and columns as average bidding level (mean and std).
+    """
+    # Concatenate data from all main sites
+    dfs = [data_included[site] for site in main_sites if site in data_included]
+    combined = pd.concat(dfs, ignore_index=True)
+
+    # Group by VALUE_LEVEL and compute mean and std
+    summary = combined.groupby("VALUE_LEVEL")["BIDDING_LEVEL"].agg(['mean', 'std']).reset_index()
+    summary.to_csv(f"{output_dir}/avg_bidding_levels_by_value/avg_bidding_levels_by_value_level.csv", index=False)
