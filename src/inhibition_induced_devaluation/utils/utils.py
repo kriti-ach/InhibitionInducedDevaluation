@@ -441,7 +441,11 @@ def get_processed_data(
     return processed_data
 
 def create_devaluation_figure(
-    df: pd.DataFrame, location: str, subject_type: str, figure_dir: Path, ax: plt.Axes = None
+    df: pd.DataFrame,
+    location: str,
+    subject_type: str,
+    figure_dir: Path,
+    ax: plt.Axes = None
 ) -> plt.Axes:
     """
     Create devaluation figure from processed data.
@@ -488,32 +492,37 @@ def create_devaluation_figure(
     ax.set_title(f"{location} - {subject_type} subjects")
     ax.set_xlabel("Value Level")
     ax.set_ylabel("Average Bidding Level")
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=0)  # Ensure x-axis labels are rotated
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
     ax.set_yticks(np.arange(1, 7, 1))
     ax.legend(title="Stop Condition")
 
     return ax  # Return the axes object, it can be used if no ax provided.
 
-def create_combined_devaluation_figures(data, figure_dir: Path, subject_type: str, include_dr: bool = False, main_figure_name: str = "", dr_figure_name: str = ""):
+def create_combined_devaluation_figures(data,
+                                        figure_dir: Path,
+                                        subject_type: str,
+                                        include_dr: bool = False,
+                                        main_figure_name: str = "",
+                                        dr_figure_name: str = ""):
     """Creates combined devaluation figures (side-by-side plots)."""
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))  # 1 row, 3 columns for Stanford, Tel Aviv, UNC
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
     locations_abc = ["Stanford", "Tel Aviv", "UNC"]
 
     for i, location in enumerate(locations_abc):
         df = data[location]
-        ax = create_devaluation_figure(df, location, subject_type, figure_dir, axes[i]) # Pass axes object
+        create_devaluation_figure(df, location, subject_type, figure_dir, axes[i])
     plt.tight_layout()
     plt.savefig(figure_dir / main_figure_name)
     plt.close(fig)  # Close the figure to prevent memory issues.
 
     if include_dr:
         # Create the combined figure for DR1 and DR2
-        fig_s, axes_s = plt.subplots(1, 2, figsize=(12, 6))  # 1 row, 2 columns for DR1, DR2
+        fig_s, axes_s = plt.subplots(1, 2, figsize=(12, 6))
         locations_s = ["DR1", "DR2"]
         for i, location in enumerate(locations_s):
             df = data[location]
-            ax = create_devaluation_figure(df, location, subject_type, figure_dir, axes_s[i])
+            create_devaluation_figure(df, location, subject_type, figure_dir, axes_s[i])
         plt.tight_layout()
         plt.savefig(figure_dir / dr_figure_name)
         plt.close(fig_s)
@@ -1144,9 +1153,23 @@ def analyze_iid_effects_by_site(
         location = location_dir.name
 
         # Create devaluation figures for included subjects
-        create_combined_devaluation_figures(data_included, figure_dir, "included", include_dr=True, main_figure_name="figure1.png", dr_figure_name="figureS3.png")
-        create_combined_devaluation_figures(data_all, figure_dir, "all", include_dr=True, main_figure_name="figureS1.png", dr_figure_name="figureS5.png")
-        create_combined_devaluation_figures(data_phase1, figure_dir, "phase1", include_dr=False, main_figure_name="figureS2.png")
+        create_combined_devaluation_figures(data_included,
+                                            figure_dir,
+                                            "included",
+                                            include_dr=True,
+                                            main_figure_name="figure1.png",
+                                            dr_figure_name="figureS3.png")
+        create_combined_devaluation_figures(data_all,
+                                            figure_dir,
+                                            "all",
+                                            include_dr=True,
+                                            main_figure_name="figureS1.png",
+                                            dr_figure_name="figureS5.png")
+        create_combined_devaluation_figures(data_phase1,
+                                            figure_dir,
+                                            "phase1",
+                                            include_dr=False,
+                                            main_figure_name="figureS2.png")
 
         # Create JASP format files for all subject types
         create_jasp_files(data_included, "included", jasp_dir, location)
@@ -1158,31 +1181,42 @@ def analyze_iid_effects_by_site(
     create_jasp_files(data_all, "all", jasp_dir, "Combined")
     create_jasp_files(data_phase1, "phase1", jasp_dir, "Combined")
 
-def average_bidding_by_value_level_across_sites(data: Dict[str, pd.DataFrame], output_dir: Path, main_sites: list = ["Stanford", "Tel Aviv", "UNC"]) -> pd.DataFrame:
+def average_bidding_across_sites(data: Dict[str, pd.DataFrame],
+                                 output_dir: Path,
+                                 main_sites: list = ["Stanford",
+                                                     "Tel Aviv",
+                                                     "UNC"]) -> pd.DataFrame:
     """
-    Compute the average bidding level for each value level (L, LM, HM, H) across all main sites.
+    Compute the average bidding level for each value level
+    (L, LM, HM, H) across all main sites.
 
     Args:
         data: Dictionary of processed DataFrames by location.
         main_sites: List of main site names to include.
 
     Returns:
-        DataFrame with index as VALUE_LEVEL and columns as average bidding level (mean and std).
+        DataFrame with index as VALUE_LEVEL and columns as
+        average bidding level (mean and std).
     """
     # Concatenate data from all main sites
     dfs = [data[site] for site in main_sites if site in data]
     combined = pd.concat(dfs, ignore_index=True)
 
     # Group by VALUE_LEVEL and compute mean and std
-    summary = combined.groupby("VALUE_LEVEL")["BIDDING_LEVEL"].agg(['mean', 'std']).reset_index()
-    summary.to_csv(f"{output_dir}/avg_bidding_levels_by_value/avg_bidding_levels_by_value_level.csv", index=False)
+    summary = combined.groupby("VALUE_LEVEL")["BIDDING_LEVEL"].agg([
+        'mean', 'std']).reset_index()
+    #make the avg_bidding_levels directory if it doesn't exist
+    output_dir.mkdir(parents=True, exist_ok=True)
+    summary.to_csv(f"{output_dir}/avg.csv", index=False)
 
-def average_bidding_by_value_level_and_stop_condition_for_stanford(data: Dict[str, pd.DataFrame], output_dir: Path) -> pd.DataFrame:
+def average_bidding_for_stanford(data:Dict[str, pd.DataFrame],
+                                 output_dir:Path) -> pd.DataFrame:
     """
-    Compute the average bidding level for each value level (L, LM, HM, H) and stop condition (Stop, Non-Stop) for Stanford (all subjects).
+    Compute the average bidding level for each value level (L, LM, HM, H) and
+    stop condition (Stop, Non-Stop) for Stanford.
 
     Args:
-        data_all: Dictionary of processed DataFrames by location (from get_processed_data with subject_filter='all').
+        data: Dictionary of processed DataFrames by location
         output_dir: Path to the output directory.
 
     Returns:

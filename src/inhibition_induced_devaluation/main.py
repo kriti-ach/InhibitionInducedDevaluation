@@ -2,15 +2,16 @@ from pathlib import Path
 
 from inhibition_induced_devaluation.utils.utils import (
     analyze_iid_effects_by_site,
+    average_bidding_across_sites,
+    average_bidding_for_stanford,
     combine_location_data,
     create_figure2_and_s2,
     create_stopping_results_tables,
     get_both_exclusions,
     get_iqr_exclusions,
     get_processed_data,
-    average_bidding_by_value_level_across_sites,
-    average_bidding_by_value_level_and_stop_condition_for_stanford,
 )
+
 
 def main():
     """Process behavioral data and identify subjects to exclude."""
@@ -58,9 +59,13 @@ def main():
 
     # Create stopping results tables
     create_stopping_results_tables(data_dir, table_dir, all_exclusions)
-    average_bidding_by_value_level_across_sites(included_data, output_dir)
-    average_bidding_by_value_level_and_stop_condition_for_stanford(all_data, output_dir / "avg_bidding_levels_by_value" / "stanford_interaction_all_subjects.csv")
-    average_bidding_by_value_level_and_stop_condition_for_stanford(phase1_data, output_dir / "avg_bidding_levels_by_value" / "stanford_interaction_phase1_explicit.csv")
+    average_bidding_across_sites(included_data, output_dir / "avg_bidding_levels")
+    average_bidding_for_stanford(all_data, output_dir /
+                                 "avg_bidding_levels" /
+                                 "stanford_interaction_all_subjects.csv")
+    average_bidding_for_stanford(phase1_data, output_dir /
+                                 "avg_bidding_levels" /
+                                 "stanford_interaction_phase1_explicit.csv")
     # Store all equivalence results
 
     # --- Combined Analyses ---
