@@ -371,7 +371,7 @@ def process_subject_data(file_path: Path, location: str) -> pd.DataFrame:
         .reset_index()
     )
     df_agg["STOP_CONDITION"] = df_agg["paired_with_stopping"].map(
-        {0: "No Stop", 1: "Stop"}
+        {0: "Non-Stop", 1: "Stop"}
     )
 
     return df_agg[["SUBJECT", "VALUE_LEVEL", "STOP_CONDITION", "BIDDING_LEVEL"]]
@@ -494,7 +494,7 @@ def create_devaluation_figure(
 
     return ax  # Return the axes object, it can be used if no ax provided.
 
-def create_combined_devaluation_figures(data, figure_dir: Path, subject_type: str):
+def create_combined_devaluation_figures(data, figure_dir: Path, subject_type: str, include_dr: bool = False, main_figure_name: str = "", dr_figure_name: str = ""):
     """Creates combined devaluation figures (side-by-side plots)."""
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))  # 1 row, 3 columns for Stanford, Tel Aviv, UNC
@@ -504,18 +504,19 @@ def create_combined_devaluation_figures(data, figure_dir: Path, subject_type: st
         df = data[location]
         ax = create_devaluation_figure(df, location, subject_type, figure_dir, axes[i]) # Pass axes object
     plt.tight_layout()
-    plt.savefig(figure_dir / "figure1.png")
+    plt.savefig(figure_dir / main_figure_name)
     plt.close(fig)  # Close the figure to prevent memory issues.
 
-    # Create the combined figure for DR1 and DR2
-    fig_s, axes_s = plt.subplots(1, 2, figsize=(12, 6))  # 1 row, 2 columns for DR1, DR2
-    locations_s = ["DR1", "DR2"]
-    for i, location in enumerate(locations_s):
-        df = data[location]
-        ax = create_devaluation_figure(df, location, subject_type, figure_dir, axes_s[i])
-    plt.tight_layout()
-    plt.savefig(figure_dir / "figureS1.png")
-    plt.close(fig_s)
+    if include_dr:
+        # Create the combined figure for DR1 and DR2
+        fig_s, axes_s = plt.subplots(1, 2, figsize=(12, 6))  # 1 row, 2 columns for DR1, DR2
+        locations_s = ["DR1", "DR2"]
+        for i, location in enumerate(locations_s):
+            df = data[location]
+            ax = create_devaluation_figure(df, location, subject_type, figure_dir, axes_s[i])
+        plt.tight_layout()
+        plt.savefig(figure_dir / dr_figure_name)
+        plt.close(fig_s)
 
 def perform_rm_anova(
     df: pd.DataFrame) -> AnovaRM:
@@ -592,7 +593,7 @@ def perform_equivalence_testing(
     ).dropna()
 
     stop_group = paired_df["Stop"]
-    no_stop_group = paired_df["No Stop"]
+    no_stop_group = paired_df["Non-Stop"]
 
     # Calculate statistics
     diff = no_stop_group - stop_group
@@ -738,12 +739,14 @@ def create_stopping_results_tables(data_dir: Path, table_dir: Path,
     tables2.to_csv(table_dir / "tableS4.csv", index=False)
     tables3.to_csv(table_dir / "tableS5.csv", index=False)
 
-def plot_figure2_and_s2(data, filename):
+def plot_figure2_and_s2(data, filename, ylim: Tuple[float, float] = (-4, 4)):
     plt.figure(figsize=(10, 6))
 
     # Determine the order of samples
     if 'DR1' in data['Sample'].unique():
         sample_order = ['DR1', 'DR2']
+    elif 'CR6' in data['Sample'].unique():
+        sample_order = ['CR6', 'CR7']
     else:
         sample_order = ['Stanford', 'Tel Aviv', 'UNC']
 
@@ -767,7 +770,8 @@ def plot_figure2_and_s2(data, filename):
 
     plt.xlabel("Sample")
     plt.ylabel("Devaluation")
-    plt.ylim(-4, 4)
+    plt.ylim(ylim)
+    plt.axhline(y=0, color='red', linestyle='--', linewidth=1)
     plt.savefig(filename, dpi=300, bbox_inches="tight")
     plt.close()
 
@@ -807,7 +811,7 @@ def create_figure2_and_s2(data_dir: Path, figure_dir: Path):
 
     # Create Figure S2 (DR1, DR2)
     plot_figure2_and_s2(plot_df[plot_df['Sample'].isin(['DR1', 'DR2'])],
-                  figure_dir / "figureS2.png")
+                  figure_dir / "figureS4.png")
 
 
 def find_devaluation_counts(positive_counts: float, negative_counts: float,
@@ -863,7 +867,7 @@ def create_results_table(
         ('Stopping', 'Main effect'),
         ('Stopping', 'BF₀₁'),
         ('Stopping', 'Equivalence test'),
-        ('Stopping', 'Count of Non-stop <= Stop'),
+        ('Stopping', 'Count of Non-Stop <= Stop'),
         ('Value', 'Main effect'),
         ('Interaction', 'Interaction'),
     ], names=['Effect', 'Test'])
@@ -905,7 +909,7 @@ def create_results_table(
                                         columns="STOP_CONDITION",
                                         values="BIDDING_LEVEL").dropna()
 
-        nostop_less_than_equal_to_stop = sum(paired_df["No Stop"] <= paired_df["Stop"])
+        nostop_less_than_equal_to_stop = sum(paired_df["Non-Stop"] <= paired_df["Stop"])
         total_subjects = len(paired_df)
         n = len(paired_df)
 
@@ -1068,7 +1072,7 @@ def analyze_rt_differences(metrics: Dict[str, List[Dict]]) -> None:
 
             if p_val1 < 0.001 and p_val2 < 0.001 and p_val3 < 0.001:
                 print("All p-values comparing Go RT to" +
-                      f"Stop-failure RT are less than 0.001 for {location}")
+                      f" Stop-failure RT are less than 0.001 for {location}")
             else:
                 print(f"At least one p-value is greater than 0.001 for {location}")
 
@@ -1140,7 +1144,9 @@ def analyze_iid_effects_by_site(
         location = location_dir.name
 
         # Create devaluation figures for included subjects
-        create_combined_devaluation_figures(data_included, figure_dir, "included")
+        create_combined_devaluation_figures(data_included, figure_dir, "included", include_dr=True, main_figure_name="figure1.png", dr_figure_name="figureS3.png")
+        create_combined_devaluation_figures(data_all, figure_dir, "all", include_dr=True, main_figure_name="figureS1.png", dr_figure_name="figureS5.png")
+        create_combined_devaluation_figures(data_phase1, figure_dir, "phase1", include_dr=False, main_figure_name="figureS2.png")
 
         # Create JASP format files for all subject types
         create_jasp_files(data_included, "included", jasp_dir, location)
@@ -1152,21 +1158,48 @@ def analyze_iid_effects_by_site(
     create_jasp_files(data_all, "all", jasp_dir, "Combined")
     create_jasp_files(data_phase1, "phase1", jasp_dir, "Combined")
 
-def average_bidding_by_value_level_across_sites(data_included: Dict[str, pd.DataFrame], output_dir: Path, main_sites: list = ["Stanford", "Tel Aviv", "UNC"]) -> pd.DataFrame:
+def average_bidding_by_value_level_across_sites(data: Dict[str, pd.DataFrame], output_dir: Path, main_sites: list = ["Stanford", "Tel Aviv", "UNC"]) -> pd.DataFrame:
     """
     Compute the average bidding level for each value level (L, LM, HM, H) across all main sites.
 
     Args:
-        data_included: Dictionary of processed DataFrames by location.
+        data: Dictionary of processed DataFrames by location.
         main_sites: List of main site names to include.
 
     Returns:
         DataFrame with index as VALUE_LEVEL and columns as average bidding level (mean and std).
     """
     # Concatenate data from all main sites
-    dfs = [data_included[site] for site in main_sites if site in data_included]
+    dfs = [data[site] for site in main_sites if site in data]
     combined = pd.concat(dfs, ignore_index=True)
 
     # Group by VALUE_LEVEL and compute mean and std
     summary = combined.groupby("VALUE_LEVEL")["BIDDING_LEVEL"].agg(['mean', 'std']).reset_index()
     summary.to_csv(f"{output_dir}/avg_bidding_levels_by_value/avg_bidding_levels_by_value_level.csv", index=False)
+
+def average_bidding_by_value_level_and_stop_condition_for_stanford(data: Dict[str, pd.DataFrame], output_dir: Path) -> pd.DataFrame:
+    """
+    Compute the average bidding level for each value level (L, LM, HM, H) and stop condition (Stop, Non-Stop) for Stanford (all subjects).
+
+    Args:
+        data_all: Dictionary of processed DataFrames by location (from get_processed_data with subject_filter='all').
+        output_dir: Path to the output directory.
+
+    Returns:
+        DataFrame with VALUE_LEVEL, STOP_CONDITION, mean, std, and count columns.
+    """
+    if "Stanford" not in data:
+        raise ValueError("Stanford data not found in data dictionary.")
+    df = data["Stanford"].copy()
+    # Ensure correct order for VALUE_LEVEL
+    value_level_order = pd.CategoricalDtype(["L", "LM", "HM", "H"], ordered=True)
+    df["VALUE_LEVEL"] = df["VALUE_LEVEL"].astype(value_level_order)
+    # Group by VALUE_LEVEL and STOP_CONDITION
+    summary = (
+        df.groupby(["VALUE_LEVEL", "STOP_CONDITION"], observed=True)["BIDDING_LEVEL"]
+        .agg(["mean", "std"])
+        .reset_index()
+    )
+    # Save to CSV
+    summary.to_csv(output_dir, index=False)
+    return summary

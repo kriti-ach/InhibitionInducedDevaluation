@@ -2,6 +2,6 @@ Effect,Test,Stanford,Tel Aviv,UNC,Combined
 Stopping,Main effect,"Stopping F(1, 10) = 0.35, p = 0.570","Stopping F(1, 16) = 0.50, p = 0.489","Stopping F(1, 25) = 0.08, p = 0.786","Stopping F(1, 53) = 0.84, p = 0.362"
 Stopping,BF₀₁,2.90,3.22,4.66,4.52
 Stopping,Equivalence test,"t(10) = -1.09, p = 0.151","t(16) = -0.94, p = 0.180","t(25) = -2.71, p = 0.006","t(53) = -2.75, p = 0.004"
-Stopping,Count of Non-stop <= Stop,6 of 11,9 of 17,11 of 26,26 of 54
+Stopping,Count of Non-Stop <= Stop,6 of 11,9 of 17,11 of 26,26 of 54
 Value,Main effect,"Value F(3, 30) = 8.75, p < .001","Value F(3, 48) = 6.88, p < .001","Value F(3, 75) = 13.02, p < .001","Value F(3, 159) = 28.55, p < .001"
 Interaction,Interaction,"Interaction F(3, 30) = 3.31, p = 0.033","Interaction F(3, 48) = 0.04, p = 0.988","Interaction F(3, 75) = 1.66, p = 0.184","Interaction F(3, 159) = 1.82, p = 0.146"

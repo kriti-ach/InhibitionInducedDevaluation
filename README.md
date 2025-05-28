@@ -46,3 +46,14 @@ source setup_env.sh
 ## Notes
 
 This repository used the Cookiecutter template from: https://github.com/lobennett/uv_cookie
+
+## Notes about OSF Repos
+
+The following OSF repositories have previous work relevant to this manuscript. We initially included 2 Direct Replications (DRs) and 7 Conceptual Replications (CRs) in our Registered Replication. However, in our final manuscript, we did not include data from the 7 CRs as their procedures differed quite a bit from Wessel et al. (2014) and they had small sample sizes. The DRs and CRs are referenced in the OSF repos below. 
+
+- Inhibition Induced Devaluation Registered Replication (https://osf.io/x38aj/)
+    - This repository has data from the 2 DRs and 7 CRs. 
+    - It also has the Registered Replication pdf document and the scripts used to analyze the data. 
+
+- Inhibition Induced Devaluation Replication (https://osf.io/kq5xd/)
+    - This repository has a power analysis to determine sample size for our DRs and CRs. 

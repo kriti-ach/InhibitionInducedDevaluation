@@ -9,8 +9,8 @@ from inhibition_induced_devaluation.utils.utils import (
     get_iqr_exclusions,
     get_processed_data,
     average_bidding_by_value_level_across_sites,
+    average_bidding_by_value_level_and_stop_condition_for_stanford,
 )
-
 
 def main():
     """Process behavioral data and identify subjects to exclude."""
@@ -59,6 +59,8 @@ def main():
     # Create stopping results tables
     create_stopping_results_tables(data_dir, table_dir, all_exclusions)
     average_bidding_by_value_level_across_sites(included_data, output_dir)
+    average_bidding_by_value_level_and_stop_condition_for_stanford(all_data, output_dir / "avg_bidding_levels_by_value" / "stanford_interaction_all_subjects.csv")
+    average_bidding_by_value_level_and_stop_condition_for_stanford(phase1_data, output_dir / "avg_bidding_levels_by_value" / "stanford_interaction_phase1_explicit.csv")
     # Store all equivalence results
 
     # --- Combined Analyses ---
@@ -72,7 +74,6 @@ def main():
     analyze_iid_effects_by_site(data_dir, all_exclusions, output_dir,
                                 table_dir, figure_dir, combined_phase1_data,
                                 combined_all_data, combined_included_data)
-    print("\nProcessing complete.")
 
 if __name__ == "__main__":
     main()
