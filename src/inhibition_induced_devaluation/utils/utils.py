@@ -486,7 +486,8 @@ def create_devaluation_figure(
     # Create figure
     color_map = {"No stop": "#444444", "Stop": "#ffffff"}
     bar_colors = [color_map.get(col, "#cccccc") for col in avg_pivot.columns]
-    avg_pivot.plot(kind="bar", yerr=sem_pivot, capsize=4, ax=ax, color=bar_colors, edgecolor='black')
+    avg_pivot.plot(kind="bar", yerr=sem_pivot, capsize=4,
+                   ax=ax, color=bar_colors, edgecolor='black')
 
     if subject_type == "included":
         ax.set_title(f"{location}", fontsize=20)
