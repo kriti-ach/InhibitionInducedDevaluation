@@ -1,4 +1,4 @@
-Location,Go RT (ms),Go RT Stop shapes (ms),Go RT Non-Stop Shapes (ms),Stop-Failure RT (ms),p(resp|signal),SSRT (ms)
+Location,Go RT (ms),Go RT Stop shapes (ms),Go RT No stop Shapes (ms),Stop-Failure RT (ms),p(resp|signal),SSRT (ms)
 Stanford,589 (128),618 (142),581 (128),495 (125),0.46 (0.08),175 (69)
 Tel Aviv,616 (124),653 (148),607 (126),543 (140),0.45 (0.09),197 (116)
 UNC,580 (77),622 (107),569 (79),490 (93),0.46 (0.05),185 (71)

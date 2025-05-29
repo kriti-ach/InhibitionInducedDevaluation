@@ -371,7 +371,7 @@ def process_subject_data(file_path: Path, location: str) -> pd.DataFrame:
         .reset_index()
     )
     df_agg["STOP_CONDITION"] = df_agg["paired_with_stopping"].map(
-        {0: "Non-Stop", 1: "Stop"}
+        {0: "No stop", 1: "Stop"}
     )
 
     return df_agg[["SUBJECT", "VALUE_LEVEL", "STOP_CONDITION", "BIDDING_LEVEL"]]
@@ -484,9 +484,9 @@ def create_devaluation_figure(
     )
 
     # Create figure
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(10, 6)) # If ax is None create a new figure
-    avg_pivot.plot(kind="bar", yerr=sem_pivot, capsize=4, ax=ax)
+    color_map = {"No stop": "#444444", "Stop": "#ffffff"}
+    bar_colors = [color_map.get(col, "#cccccc") for col in avg_pivot.columns]
+    avg_pivot.plot(kind="bar", yerr=sem_pivot, capsize=4, ax=ax, color=bar_colors, edgecolor='black')
 
     if subject_type == "included":
         ax.set_title(f"{location}", fontsize=20)
@@ -611,7 +611,7 @@ def perform_equivalence_testing(
     ).dropna()
 
     stop_group = paired_df["Stop"]
-    no_stop_group = paired_df["Non-Stop"]
+    no_stop_group = paired_df["No stop"]
 
     # Calculate statistics
     diff = no_stop_group - stop_group
@@ -721,7 +721,7 @@ def create_stopping_results_tables(data_dir: Path, table_dir: Path,
     metric_display = {
         "p2_go_RT": "Go RT (ms)",
         "p2_goRT_stop_shapes": "Go RT Stop shapes (ms)",
-        "p2_goRT_go_shapes": "Go RT Non-Stop Shapes (ms)",
+        "p2_goRT_go_shapes": "Go RT No stop Shapes (ms)",
         "p2_stopfail_RT": "Stop-Failure RT (ms)",
         "p2_prob_stop": "p(resp|signal)",
         "p2_SSRT": "SSRT (ms)",
@@ -888,7 +888,7 @@ def create_results_table(
         ('Stopping', 'Main effect'),
         ('Stopping', 'BF₀₁'),
         ('Stopping', 'Equivalence test'),
-        ('Stopping', 'Count of Non-Stop <= Stop'),
+        ('Stopping', 'Count of No stop <= Stop'),
         ('Value', 'Main effect'),
         ('Interaction', 'Interaction'),
     ], names=['Effect', 'Test'])
@@ -923,14 +923,14 @@ def create_results_table(
         equiv_p = max(p_lower, p_upper)
         equiv_t = t_lower if abs(t_lower) < abs(t_upper) else t_upper
 
-        # Count subjects where Non-stop <= Stop
+        # Count subjects where No stop <= Stop
         aggregated_df = df.groupby(["SUBJECT", "STOP_CONDITION"],
                                    observed=True)["BIDDING_LEVEL"].mean().reset_index()
         paired_df = aggregated_df.pivot(index="SUBJECT",
                                         columns="STOP_CONDITION",
                                         values="BIDDING_LEVEL").dropna()
 
-        nostop_less_than_equal_to_stop = sum(paired_df["Non-Stop"] <= paired_df["Stop"])
+        nostop_less_than_equal_to_stop = sum(paired_df["No stop"] <= paired_df["Stop"])
         total_subjects = len(paired_df)
         n = len(paired_df)
 
@@ -1225,7 +1225,7 @@ def average_bidding_for_stanford(data:Dict[str, pd.DataFrame],
                                  output_dir:Path) -> pd.DataFrame:
     """
     Compute the average bidding level for each value level (L, LM, HM, H) and
-    stop condition (Stop, Non-Stop) for Stanford.
+    stop condition (Stop, No stop) for Stanford.
 
     Args:
         data: Dictionary of processed DataFrames by location
