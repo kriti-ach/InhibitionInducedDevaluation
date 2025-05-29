@@ -488,13 +488,22 @@ def create_devaluation_figure(
         fig, ax = plt.subplots(figsize=(10, 6)) # If ax is None create a new figure
     avg_pivot.plot(kind="bar", yerr=sem_pivot, capsize=4, ax=ax)
 
-
-    ax.set_title(f"{location} - {subject_type} subjects")
-    ax.set_xlabel("Value Level")
-    ax.set_ylabel("Average Bidding Level")
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+    if subject_type == "included":
+        ax.set_title(f"{location}", fontsize=20)
+    elif subject_type == "all":
+        ax.set_title(f"{location} - No Exclusions", fontsize=20)
+    else:
+        ax.set_title(f"{location} - Phase 1 Explicit Learners", fontsize=20)
+    ax.set_xlabel("Value Level", fontsize=16)
+    ax.set_ylabel("Average Bidding Level", fontsize=16)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontsize=14)
     ax.set_yticks(np.arange(1, 7, 1))
-    ax.legend(title="Stop Condition")
+    ax.tick_params(axis='y', labelsize=14)
+    leg = ax.legend(title="Stop Condition", fontsize=14, title_fontsize=14)
+    if leg:
+        for text in leg.get_texts():
+            text.set_fontsize(14)
+        leg.get_title().set_fontsize(14)
 
     return ax  # Return the axes object, it can be used if no ax provided.
 
@@ -748,14 +757,12 @@ def create_stopping_results_tables(data_dir: Path, table_dir: Path,
     tables2.to_csv(table_dir / "tableS4.csv", index=False)
     tables3.to_csv(table_dir / "tableS5.csv", index=False)
 
-def plot_figure2_and_s2(data, filename, ylim: Tuple[float, float] = (-4, 4)):
+def plot_figure2(data, filename, ylim: Tuple[float, float] = (-4, 4)):
     plt.figure(figsize=(10, 6))
 
     # Determine the order of samples
     if 'DR1' in data['Sample'].unique():
         sample_order = ['DR1', 'DR2']
-    elif 'CR6' in data['Sample'].unique():
-        sample_order = ['CR6', 'CR7']
     else:
         sample_order = ['Stanford', 'Tel Aviv', 'UNC']
 
@@ -777,14 +784,23 @@ def plot_figure2_and_s2(data, filename, ylim: Tuple[float, float] = (-4, 4)):
         order=sample_order
     )
 
-    plt.xlabel("Sample")
-    plt.ylabel("Devaluation")
+    plt.xlabel("Sample", fontsize=16)
+    plt.ylabel("Devaluation", fontsize=16)
     plt.ylim(ylim)
     plt.axhline(y=0, color='red', linestyle='--', linewidth=1)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    ax = plt.gca()
+    # If a legend is present, set its font size
+    leg = ax.get_legend()
+    if leg:
+        for text in leg.get_texts():
+            text.set_fontsize(14)
+        leg.get_title().set_fontsize(14)
     plt.savefig(filename, dpi=300, bbox_inches="tight")
     plt.close()
 
-def create_figure2_and_s2(data_dir: Path, figure_dir: Path):
+def create_figure2(data_dir: Path, figure_dir: Path):
     """
     Create stripplot visualizations of IID effects by location
     with individual subject points and confidence intervals.
@@ -814,13 +830,9 @@ def create_figure2_and_s2(data_dir: Path, figure_dir: Path):
     plot_df = pd.DataFrame(plot_data)
 
     # Create Figure 2 (Stanford, Tel Aviv, UNC)
-    plot_figure2_and_s2(plot_df[plot_df['Sample'].isin(['Stanford',
+    plot_figure2(plot_df[plot_df['Sample'].isin(['Stanford',
                                                         'Tel Aviv', 'UNC'])],
                   figure_dir / "figure2.png")
-
-    # Create Figure S2 (DR1, DR2)
-    plot_figure2_and_s2(plot_df[plot_df['Sample'].isin(['DR1', 'DR2'])],
-                  figure_dir / "figureS4.png")
 
 
 def find_devaluation_counts(positive_counts: float, negative_counts: float,
@@ -1164,7 +1176,7 @@ def analyze_iid_effects_by_site(
                                             "all",
                                             include_dr=True,
                                             main_figure_name="figureS1.png",
-                                            dr_figure_name="figureS5.png")
+                                            dr_figure_name="figureS4.png")
         create_combined_devaluation_figures(data_phase1,
                                             figure_dir,
                                             "phase1",

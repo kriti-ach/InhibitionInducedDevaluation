@@ -5,7 +5,7 @@ from inhibition_induced_devaluation.utils.utils import (
     average_bidding_across_sites,
     average_bidding_for_stanford,
     combine_location_data,
-    create_figure2_and_s2,
+    create_figure2,
     create_stopping_results_tables,
     get_both_exclusions,
     get_iqr_exclusions,
@@ -31,7 +31,7 @@ def main():
         },
     )
     # Create Figure 2
-    create_figure2_and_s2(data_dir, figure_dir)
+    create_figure2(data_dir, figure_dir)
 
     # Save exclusion summary
     for location, excluded_subjects in behavioral_exclusions.items():
