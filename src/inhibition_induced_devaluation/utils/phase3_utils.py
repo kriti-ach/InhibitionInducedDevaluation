@@ -3,6 +3,8 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
+from inhibition_induced_devaluation.utils.globals import OUTLIER_MULTIPLIER
+
 
 def calculate_mean_bids(stop_shapes: pd.DataFrame,
                         go_shapes: pd.DataFrame) -> Tuple[float, float]:
@@ -66,6 +68,6 @@ def calculate_iqr_cutoffs(iid_effects: List[float]) -> Tuple[float, float]:
     """
     q75, q25 = np.percentile(iid_effects, [75, 25])
     iqr = q75 - q25
-    upper_cutoff = q75 + iqr * 1.5
-    lower_cutoff = q25 - iqr * 1.5
+    upper_cutoff = q75 + iqr * OUTLIER_MULTIPLIER
+    lower_cutoff = q25 - iqr * OUTLIER_MULTIPLIER
     return upper_cutoff, lower_cutoff

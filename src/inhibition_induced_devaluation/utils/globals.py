@@ -2,6 +2,7 @@ NO_RESPONSE = 0 # On stop signal trials, if subjects do not respond,
                 # their response is assigned to 0
 MAX_P_RESPOND = 1 # If subjects respond on all stop signal trials,
                     # the probability of responding is assigned to 1
+OUTLIER_MULTIPLIER = 1.5
 # Define explicit knowledge subjects for each location
 EXPLICIT_KNOWLEDGE_SUBJECTS = {
     "DR1": {"S62", "S63", "S65", "S72", "S11", "S52", "S67"},
